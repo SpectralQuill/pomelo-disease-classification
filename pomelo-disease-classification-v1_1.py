@@ -29,7 +29,9 @@ np.random.seed(seed)
 tf.random.set_seed(seed)
 
 # Class names
-class_names = ['Anthracnose', 'Borer', 'Canker', 'Healthy', 'Mites']
+# class_names = ['Anthracnose', 'Borer', 'Canker', 'Healthy', 'Mites']
+# temporary
+class_names = ['Anthracnose', 'Borer', 'Canker', 'Mites']
 
 class PomeloDiseaseClassifier:
     def __init__(self, img_size=224, batch_size=32):

@@ -1,6 +1,6 @@
-.conda
 *.pt
 
+dataset
 test_images
 test_images_2
 test_output

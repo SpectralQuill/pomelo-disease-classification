@@ -8,7 +8,7 @@ import argparse
 from pathlib import Path
 
 class SAMImageProcessor:
-    def __init__(self, model_type="vit_h", checkpoint_path="preprocessing/sam_vit_h_4b8939.pth"):
+    def __init__(self, model_type="vit_h", checkpoint_path="cropper/sam_vit_h_4b8939.pth"):
         """
         Initialize the Segment Anything Model predictor
         """

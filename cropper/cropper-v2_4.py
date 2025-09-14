@@ -8,7 +8,7 @@ import argparse
 from pathlib import Path
 
 class SAMImageProcessor:
-    def __init__(self, model_type="vit_h", checkpoint_path="preprocessing/sam_vit_h_4b8939.pth", 
+    def __init__(self, model_type="vit_h", checkpoint_path="cropper/sam_vit_h_4b8939.pth", 
                  center_weight=1.0, area_weight=1.0, enhance_green=True):
         """
         Initialize the Segment Anything Model predictor
@@ -45,23 +45,16 @@ class SAMImageProcessor:
             # Set image in predictor
             self.predictor.set_image(image_rgb)
             
-            # Get image dimensions for center point
-            height, width = image_rgb.shape[:2]
-            
-            # Use center point prompt to guide SAM to the main subject
-            center_point = np.array([[width // 2, height // 2]])
-            point_labels = np.array([1])  # 1 = foreground point
-            
-            # Get the mask with center point guidance
+            # Get the mask for the entire image (subject segmentation)
             masks, scores, _ = self.predictor.predict(
-                point_coords=center_point,
-                point_labels=point_labels,
+                point_coords=None,
+                point_labels=None,
                 multimask_output=True,
             )
             
             # Create monitoring visualization if monitoring path is provided
             if monitoring_path:
-                self._create_monitoring_visualization(image_rgb, masks, scores, monitoring_path, center_point)
+                self._create_monitoring_visualization(image_rgb, masks, scores, monitoring_path)
             
             # Use scoring system to choose the best mask instead of just highest score
             best_mask = self._select_best_mask_with_scoring(masks, scores, image_rgb.shape)
@@ -94,7 +87,7 @@ class SAMImageProcessor:
             print(f"Error processing {image_path}: {str(e)}")
             return False
     
-    def _create_monitoring_visualization(self, image_rgb, masks, scores, monitoring_path, center_point):
+    def _create_monitoring_visualization(self, image_rgb, masks, scores, monitoring_path):
         """
         Create a visualization of all segments found in the image for monitoring
         """
@@ -118,7 +111,7 @@ class SAMImageProcessor:
             col = i % cols
             
             # Create visualization for this mask
-            mask_visualization = self._visualize_mask(image_rgb, mask, score, i, center_point)
+            mask_visualization = self._visualize_mask(image_rgb, mask, score, i, masks)
             
             # Place in grid
             y_start = row * image_rgb.shape[0]
@@ -133,7 +126,7 @@ class SAMImageProcessor:
         monitoring_image.save(monitoring_path)
         print(f"Monitoring visualization saved: {monitoring_path}")
     
-    def _visualize_mask(self, image_rgb, mask, score, mask_index, center_point):
+    def _visualize_mask(self, image_rgb, mask, score, mask_index, masks):
         """
         Create a visualization of a single mask with bounding box and score
         """
@@ -148,11 +141,6 @@ class SAMImageProcessor:
         alpha = 0.3
         visualization = cv2.addWeighted(visualization, 1.0, mask_rgb, alpha, 0)
         
-        # Draw center point (prompt point)
-        center_x, center_y = center_point[0]
-        cv2.circle(visualization, (center_x, center_y), 10, (0, 255, 255), -1)  # Yellow center point
-        cv2.circle(visualization, (center_x, center_y), 12, (0, 0, 0), 2)  # Black outline
-        
         # Draw bounding box
         coords = np.column_stack(np.where(mask))
         if len(coords) > 0:
@@ -162,10 +150,10 @@ class SAMImageProcessor:
             # Draw rectangle
             cv2.rectangle(visualization, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
             
-            # Draw center point of mask
-            mask_center_x = (x_min + x_max) // 2
-            mask_center_y = (y_min + y_max) // 2
-            cv2.circle(visualization, (mask_center_x, mask_center_y), 5, (255, 0, 255), -1)  # Purple mask center
+            # Draw center point
+            center_x = (x_min + x_max) // 2
+            center_y = (y_min + y_max) // 2
+            cv2.circle(visualization, (center_x, center_y), 5, (0, 255, 255), -1)
         
         # Add score text
         score_text = f"Score: {score:.3f}"
@@ -364,7 +352,7 @@ if __name__ == "__main__":
     MAX_IMAGES = None  # Set to None to process all images, or a number to limit
     CENTER_WEIGHT = 0.5  # Hyperparameter for center scoring
     AREA_WEIGHT = 2.0    # Hyperparameter for area scoring
-    ENHANCE_GREEN = True # Enable green contrast enhancement
+    ENHANCE_GREEN = False # Enable green contrast enhancement
     
     # Uncomment the next line to use the hardcoded paths for testing
     process_images(INPUT_FOLDER, OUTPUT_FOLDER, MAX_IMAGES, CENTER_WEIGHT, AREA_WEIGHT, ENHANCE_GREEN)

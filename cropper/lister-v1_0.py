@@ -124,7 +124,7 @@ def main():
     """
     # Configuration - UPDATE THESE PATHS
     DATASET_FOLDER = "dataset"  # Your main dataset folder
-    CSV_FILE = "preprocessing/tracker.csv"  # Your CSV file path
+    CSV_FILE = "tracker/tracker.csv"  # Your CSV file path
     
     # Get all image names from dataset (without extensions or paths)
     print("Scanning for images...")

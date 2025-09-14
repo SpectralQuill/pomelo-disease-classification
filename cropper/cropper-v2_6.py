@@ -6,10 +6,9 @@ import torch
 from segment_anything import SamPredictor, sam_model_registry
 import argparse
 from pathlib import Path
-import time
 
 class SAMImageProcessor:
-    def __init__(self, model_type="vit_h", checkpoint_path="preprocessing/sam_vit_h_4b8939.pth"):
+    def __init__(self, model_type="vit_h", checkpoint_path="cropper/sam_vit_h_4b8939.pth"):
         """
         Initialize the Segment Anything Model predictor
         """
@@ -25,13 +24,12 @@ class SAMImageProcessor:
         """
         Process a single image: segment subject, create transparent background, and save
         """
-        start_time = time.time()
         try:
             # Read image
             image = cv2.imread(image_path)
             if image is None:
                 print(f"Could not read image: {image_path}")
-                return False, 0, None
+                return False
             
             image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             
@@ -56,87 +54,47 @@ class SAMImageProcessor:
             if monitoring_path:
                 self._create_monitoring_visualization(image_rgb, masks, scores, monitoring_path, center_point)
             
-            # Check for mask override (convert 1-based to 0-based)
+            # Check for mask override
             image_name = Path(image_path).stem
-            selected_mask_index = None
-            
             if mask_override_dict and image_name in mask_override_dict:
-                override_index = mask_override_dict[image_name] - 1  # Convert 1-based to 0-based
+                override_index = mask_override_dict[image_name]
                 if 0 <= override_index < len(masks):
-                    print(f"Using override mask index {override_index + 1} for {image_name}")
+                    print(f"Using override mask index {override_index} for {image_name}")
                     best_mask = masks[override_index]
-                    selected_mask_index = override_index + 1  # Store as 1-based for logging
                 else:
-                    print(f"Invalid override index {override_index + 1} for {image_name}, using advanced selection")
-                    best_mask, selected_mask_index = self._select_best_mask(masks, scores, image_rgb.shape)
+                    print(f"Invalid override index {override_index} for {image_name}, using circularity selection")
+                    best_mask = self._select_most_circular_mask(masks, scores, image_rgb.shape)
             else:
-                # Use advanced selection with multiple criteria
-                best_mask, selected_mask_index = self._select_best_mask(masks, scores, image_rgb.shape)
+                # Use circularity-based selection
+                best_mask = self._select_most_circular_mask(masks, scores, image_rgb.shape)
             
             if best_mask is None:
                 print(f"No suitable mask found for {image_path}")
-                return False, 0, None
-            
-            # Apply morphological reconstruction to fix fragmented segments (e.g., anthracnose)
-            reconstructed_mask = self._reconstruct_complete_fruit(best_mask, image_rgb.shape)
+                return False
             
             # Find the largest connected component (biggest individual)
-            mask_uint8 = (reconstructed_mask * 255).astype(np.uint8)
+            mask_uint8 = (best_mask * 255).astype(np.uint8)
             num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(mask_uint8, 8, cv2.CV_32S)
             
             if num_labels > 1:  # If there are multiple components
                 # Find the largest component (skip background at index 0)
                 largest_component_idx = np.argmax(stats[1:, cv2.CC_STAT_AREA]) + 1
-                reconstructed_mask = (labels == largest_component_idx)
+                best_mask = (labels == largest_component_idx)
             
             # Create transparent image
-            rgba_image = self._create_transparent_image(image_rgb, reconstructed_mask)
+            rgba_image = self._create_transparent_image(image_rgb, best_mask)
             
             # Trim transparent areas
             trimmed_image = self._trim_transparent(rgba_image)
             
             # Save the result
             trimmed_image.save(output_path, 'PNG')
-            
-            processing_time = time.time() - start_time
-            print(f"Processed and saved: {output_path} (Mask {selected_mask_index}, Time: {processing_time:.2f}s)")
-            
-            return True, processing_time, selected_mask_index
+            print(f"Processed and saved: {output_path}")
+            return True
             
         except Exception as e:
             print(f"Error processing {image_path}: {str(e)}")
-            return False, 0, None
-    
-    def _reconstruct_complete_fruit(self, mask, image_shape):
-        """
-        Reconstruct the complete fruit mask from potentially fragmented segments (e.g., anthracnose)
-        """
-        # Convert mask to uint8
-        mask_uint8 = (mask * 255).astype(np.uint8)
-        
-        # 1. Morphological closing to connect nearby segments
-        kernel = np.ones((15, 15), np.uint8)  # Adjust kernel size based on image resolution
-        closed_mask = cv2.morphologyEx(mask_uint8, cv2.MORPH_CLOSE, kernel)
-        
-        # 2. Find the largest contour
-        contours, _ = cv2.findContours(closed_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
-            return mask
-        
-        largest_contour = max(contours, key=cv2.contourArea)
-        
-        # 3. Create a convex hull to get the full fruit shape
-        hull = cv2.convexHull(largest_contour)
-        
-        # 4. Create a new mask from the convex hull
-        complete_mask = np.zeros(image_shape[:2], dtype=np.uint8)
-        cv2.fillPoly(complete_mask, [hull], 255)
-        
-        # 5. Optional: Apply mild dilation to ensure complete coverage
-        kernel_small = np.ones((5, 5), np.uint8)
-        complete_mask = cv2.dilate(complete_mask, kernel_small, iterations=1)
-        
-        return complete_mask.astype(bool)
+            return False
     
     def _create_monitoring_visualization(self, image_rgb, masks, scores, monitoring_path, center_point):
         """
@@ -216,7 +174,7 @@ class SAMImageProcessor:
         cv2.putText(visualization, score_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
                    0.7, (255, 255, 255), 2, cv2.LINE_AA)
         
-        # Add mask number (1-based for user readability)
+        # Add mask number
         mask_text = f"Mask {mask_index + 1}"
         cv2.putText(visualization, mask_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 
                    0.7, (255, 255, 255), 2, cv2.LINE_AA)
@@ -225,14 +183,6 @@ class SAMImageProcessor:
         circularity = self._calculate_circularity(mask)
         circularity_text = f"Circ: {circularity:.3f}"
         cv2.putText(visualization, circularity_text, (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 
-                   0.7, (255, 255, 255), 2, cv2.LINE_AA)
-        
-        # Add size percentage
-        mask_area = np.sum(mask)
-        image_area = mask.shape[0] * mask.shape[1]
-        size_percent = (mask_area / image_area) * 100
-        size_text = f"Size: {size_percent:.1f}%"
-        cv2.putText(visualization, size_text, (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 
                    0.7, (255, 255, 255), 2, cv2.LINE_AA)
         
         return visualization
@@ -262,90 +212,33 @@ class SAMImageProcessor:
         circularity = (4 * np.pi * area) / (perimeter * perimeter)
         return circularity
     
-    def _select_best_mask(self, masks, scores, image_shape):
+    def _select_most_circular_mask(self, masks, scores, image_shape):
         """
-        Select the best mask using multiple criteria: circularity, size, position, and edge distance
+        Select the mask that is most circular/elliptical
         """
         if len(masks) == 0:
-            return None, None
+            return None
         
-        mask_scores = []
-        image_area = image_shape[0] * image_shape[1]
-        image_center = (image_shape[1] // 2, image_shape[0] // 2)
+        circularity_scores = []
         
         for i, mask in enumerate(masks):
             # Calculate circularity
             circularity = self._calculate_circularity(mask)
             
-            # Calculate mask area and percentage of image
-            mask_area = np.sum(mask)
-            area_ratio = mask_area / image_area
+            # Combine with SAM confidence score
+            combined_score = circularity * scores[i]
             
-            # Skip masks that are too small (e.g., less than 10% of image)
-            if area_ratio < 0.1:
-                continue
-                
-            # Calculate aspect ratio
-            coords = np.column_stack(np.where(mask))
-            if len(coords) > 0:
-                y_min, x_min = coords.min(axis=0)
-                y_max, x_max = coords.max(axis=0)
-                width = x_max - x_min
-                height = y_max - y_min
-                aspect_ratio = max(width/height, height/width) if min(width, height) > 0 else float('inf')
-            else:
-                aspect_ratio = float('inf')
-            
-            # Skip masks with extreme aspect ratios
-            if aspect_ratio > 2.5:  # Too elongated
-                continue
-                
-            # Calculate center position and distance from image center
-            mask_center_x = (x_min + x_max) // 2
-            mask_center_y = (y_min + y_max) // 2
-            center_distance = np.sqrt((mask_center_x - image_center[0])**2 + 
-                                     (mask_center_y - image_center[1])**2)
-            max_distance = np.sqrt(image_center[0]**2 + image_center[1]**2)
-            position_score = 1 - (center_distance / max_distance)  # 1 = centered, 0 = at corner
-            
-            # Calculate edge proximity penalty
-            edge_distance = min(x_min, image_shape[1]-x_max, y_min, image_shape[0]-y_max)
-            edge_penalty = 0 if edge_distance > 20 else (1 - edge_distance/20)  # Penalty if close to edge
-            
-            # Combined score (weights can be adjusted)
-            combined_score = (
-                0.4 * circularity + 
-                0.3 * scores[i] + 
-                0.2 * min(1.0, area_ratio * 3) +  # Normalize area contribution
-                0.1 * position_score -
-                0.2 * edge_penalty
-            )
-            
-            mask_scores.append((mask, combined_score, i))
+            circularity_scores.append((mask, combined_score, circularity, scores[i]))
         
-        if not mask_scores:
-            return None, None
-            
-        # Sort by combined score (highest first)
-        mask_scores.sort(key=lambda x: x[1], reverse=True)
+        # Sort by circularity score (highest first)
+        circularity_scores.sort(key=lambda x: x[1], reverse=True)
         
-        # Log the best score details for debugging
-        best_index = mask_scores[0][2]
-        best_mask = mask_scores[0][0]
-        best_score = mask_scores[0][1]
+        # Log the best circularity score for debugging
+        best_circularity = circularity_scores[0][2]
+        best_confidence = circularity_scores[0][3]
+        print(f"Best circularity: {best_circularity:.3f}, Confidence: {best_confidence:.3f}")
         
-        # Calculate metrics for the best mask
-        coords = np.column_stack(np.where(best_mask))
-        y_min, x_min = coords.min(axis=0)
-        y_max, x_max = coords.max(axis=0)
-        mask_area = np.sum(best_mask)
-        area_ratio = mask_area / image_area
-        
-        print(f"Best mask: Index {best_index + 1}, Score: {best_score:.3f}, "
-              f"Size: {area_ratio*100:.1f}% of image, "
-              f"Position: ({x_min}, {y_min}) to ({x_max}, {y_max})")
-        
-        return mask_scores[0][0], mask_scores[0][2] + 1  # Return 1-based index
+        return circularity_scores[0][0]
     
     def _create_transparent_image(self, image_rgb, mask):
         """
@@ -413,38 +306,20 @@ def process_images(input_folder, output_folder, max_images=None, mask_override_d
     
     # Process each image
     successful = 0
-    total_processing_time = 0
-    processing_times = []
-    
     for i, image_path in enumerate(image_files, 1):
         print(f"Processing image {i}/{len(image_files)}: {os.path.basename(image_path)}")
         
-        output_filename = f"{Path(image_path).stem}.png"
+        output_filename = f"segmented_{Path(image_path).stem}.png"
         output_path = os.path.join(output_folder, output_filename)
         
         # Create monitoring path
         monitoring_filename = f"monitoring_{Path(image_path).stem}.jpg"
         monitoring_path = os.path.join(monitoring_folder, monitoring_filename)
         
-        success, processing_time, mask_index = processor.process_image(
-            image_path, output_path, monitoring_path, mask_override_dict
-        )
-        
-        if success:
+        if processor.process_image(image_path, output_path, monitoring_path, mask_override_dict):
             successful += 1
-            total_processing_time += processing_time
-            processing_times.append(processing_time)
     
-    # Calculate and log average processing time
-    if processing_times:
-        avg_time = total_processing_time / len(processing_times)
-        min_time = min(processing_times)
-        max_time = max(processing_times)
-        print(f"\nProcessing complete! {successful}/{len(image_files)} images processed successfully.")
-        print(f"Average processing time: {avg_time:.2f}s per image")
-        print(f"Minimum time: {min_time:.2f}s, Maximum time: {max_time:.2f}s")
-    else:
-        print(f"\nProcessing complete! {successful}/{len(image_files)} images processed successfully.")
+    print(f"Processing complete! {successful}/{len(image_files)} images processed successfully.")
 
 def main():
     parser = argparse.ArgumentParser(description='Segment images using SAM and remove background')
@@ -454,11 +329,11 @@ def main():
     
     args = parser.parse_args()
     
-    # Mask override dictionary - use 1-based indices for user input
+    # Mask override dictionary - add your image names and preferred mask indices here
     mask_override_dict = {
-        # Example: "image_name": mask_index (1-based)
-        # "IMG_1234": 3,  # This will use the 3rd mask (index 2 internally)
-        # "DSC_5678": 2,  # This will use the 2nd mask (index 1 internally)
+        # Example: "image_name": mask_index (0-based)
+        # "IMG_1234": 2,
+        # "DSC_5678": 1,
     }
     
     # Process images
@@ -475,13 +350,11 @@ if __name__ == "__main__":
     OUTPUT_FOLDER = "test_output"  # Change this to your output folder path
     MAX_IMAGES = None  # Set to None to process all images, or a number to limit
     
-    # Mask override dictionary - use 1-based indices for user input
+    # Mask override dictionary - add your image names and preferred mask indices here
     MASK_OVERRIDE_DICT = {
-        # Example: "image_name": mask_index (1-based)
-        # "IMG_1234": 3,  # This will use the 3rd mask (index 2 internally)
-        # "DSC_5678": 2,  # This will use the 2nd mask (index 1 internally)
-        # "IMG20250703084935": 2,
-        # "IMG20250703085534": 3
+        # Example: "image_name": mask_index (0-based)
+        # "IMG_1234": 2,
+        # "DSC_5678": 1,
     }
     
     # Uncomment the next line to use the hardcoded paths for testing

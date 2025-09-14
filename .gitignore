@@ -1,8 +1,5 @@
 *.pth
+~$*.xlsx
 
-dataset_raw
-dataset_cropped
-
-test_images
-test_images_2
-test_output
+dataset*
+test*

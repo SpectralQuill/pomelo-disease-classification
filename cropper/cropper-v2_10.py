@@ -52,6 +52,17 @@ class SAMImageProcessor:
                 point_labels=point_labels,
                 multimask_output=True,
             )
+
+            # Filter out small segments (5% or less of total mask area)
+            filtered_masks = []
+            filtered_scores = []
+            for mask, score in zip(masks, scores):
+                cleaned_mask = self._remove_small_segments(mask)
+                filtered_masks.append(cleaned_mask)
+                filtered_scores.append(score)
+            
+            masks = np.array(filtered_masks)
+            scores = np.array(filtered_scores)
             
             # Create monitoring visualization if monitoring path is provided
             if monitoring_path:
@@ -95,6 +106,39 @@ class SAMImageProcessor:
         except Exception as e:
             print(f"Error processing {image_path}: {str(e)}")
             return False, 0, None
+    
+    def _remove_small_segments(self, mask, min_area_ratio=0.05):
+        """
+        Remove small segments that are 5% or less of the total mask area
+        """
+        # Convert mask to uint8 for contour detection
+        mask_uint8 = (mask * 255).astype(np.uint8)
+        
+        # Find all contours in the mask
+        contours, _ = cv2.findContours(mask_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if not contours:
+            return mask
+        
+        # Calculate total mask area
+        total_area = np.sum(mask)
+        
+        # Create a new mask that only includes segments above the threshold
+        new_mask = np.zeros_like(mask, dtype=bool)
+        
+        for contour in contours:
+            # Create a temporary mask for this contour
+            temp_mask = np.zeros_like(mask_uint8)
+            cv2.drawContours(temp_mask, [contour], -1, 255, -1)
+            
+            # Calculate area of this segment
+            segment_area = np.sum(temp_mask > 0)
+            
+            # Keep segment if it's above the threshold
+            if segment_area / total_area > min_area_ratio:
+                new_mask = new_mask | (temp_mask > 0)
+        
+        return new_mask
     
     def _create_monitoring_visualization(self, image_rgb, masks, scores, monitoring_path, center_point):
         """

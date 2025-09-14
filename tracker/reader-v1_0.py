@@ -103,7 +103,7 @@ def main():
     """
     # Configuration - UPDATE THESE PATHS
     FOLDER_PATH = "dataset/Processed"  # Folder with class subfolders
-    CSV_FILE = "preprocessing/tracker.csv"  # Your CSV file path
+    CSV_FILE = "/tracker.csv"  # Your CSV file path
     
     print("Scanning subfolders for class information...")
     

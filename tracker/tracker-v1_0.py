@@ -3,9 +3,12 @@ import csv
 
 # Configuration - set these as needed
 CSV_FILE_PATH = "tracker/tracker.csv"      # Path to your CSV file
-IMAGE_FOLDER_PATH = "test_output"  # Path to your image folder
+IMAGE_FOLDER_PATH = "dataset_cropped"  # Path to your image folder
 FILL_CROPPED = True                      # Set to True to fill the third column
 FILL_TRANSPARENT = True                  # Set to True to fill the fourth column
+
+# List of folder names to disregard (case-sensitive)
+IGNORE_FOLDERS = ["monitoring"]
 
 def process_csv_with_images():
     """
@@ -21,16 +24,17 @@ def process_csv_with_images():
             name_without_ext = os.path.splitext(file)[0]
             image_names.add(name_without_ext)
     
-    # Get images from subfolders (one level down)
+    # Get images from subfolders (one level down), ignoring specified folders
     for item in os.listdir(IMAGE_FOLDER_PATH):
         item_path = os.path.join(IMAGE_FOLDER_PATH, item)
-        if os.path.isdir(item_path):
+        if os.path.isdir(item_path) and item not in IGNORE_FOLDERS:
             for file in os.listdir(item_path):
                 if file.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff')):
                     name_without_ext = os.path.splitext(file)[0]
                     image_names.add(name_without_ext)
     
     print(f"Found {len(image_names)} unique image names in the folder structure")
+    print(f"Ignored folders: {IGNORE_FOLDERS}")
     
     # Read and process the CSV file
     rows = []

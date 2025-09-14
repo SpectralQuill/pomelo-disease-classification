@@ -8,7 +8,7 @@ import argparse
 from pathlib import Path
 
 class SAMImageProcessor:
-    def __init__(self, model_type="vit_h", checkpoint_path="preprocessing/sam_vit_h_4b8939.pth", 
+    def __init__(self, model_type="vit_h", checkpoint_path="cropper/sam_vit_h_4b8939.pth", 
                  center_weight=1.0, area_weight=1.0, enhance_green=True):
         """
         Initialize the Segment Anything Model predictor
@@ -25,7 +25,7 @@ class SAMImageProcessor:
         self.sam.to(device=self.device)
         self.predictor = SamPredictor(self.sam)
     
-    def process_image(self, image_path, output_path, monitoring_path=None):
+    def process_image(self, image_path, output_path):
         """
         Process a single image: segment subject, create transparent background, and save
         """
@@ -51,10 +51,6 @@ class SAMImageProcessor:
                 point_labels=None,
                 multimask_output=True,
             )
-            
-            # Create monitoring visualization if monitoring path is provided
-            if monitoring_path:
-                self._create_monitoring_visualization(image_rgb, masks, scores, monitoring_path)
             
             # Use scoring system to choose the best mask instead of just highest score
             best_mask = self._select_best_mask_with_scoring(masks, scores, image_rgb.shape)
@@ -86,86 +82,6 @@ class SAMImageProcessor:
         except Exception as e:
             print(f"Error processing {image_path}: {str(e)}")
             return False
-    
-    def _create_monitoring_visualization(self, image_rgb, masks, scores, monitoring_path):
-        """
-        Create a visualization of all segments found in the image for monitoring
-        """
-        # Create a grid of visualizations
-        num_masks = len(masks)
-        if num_masks == 0:
-            return
-        
-        # Calculate grid dimensions
-        cols = min(4, num_masks)  # Maximum 4 columns
-        rows = (num_masks + cols - 1) // cols
-        
-        # Create a large canvas for the grid
-        grid_height = rows * image_rgb.shape[0]
-        grid_width = cols * image_rgb.shape[1]
-        grid_canvas = np.zeros((grid_height, grid_width, 3), dtype=np.uint8)
-        
-        # Create individual visualizations for each mask
-        for i, (mask, score) in enumerate(zip(masks, scores)):
-            row = i // cols
-            col = i % cols
-            
-            # Create visualization for this mask
-            mask_visualization = self._visualize_mask(image_rgb, mask, score, i, masks)
-            
-            # Place in grid
-            y_start = row * image_rgb.shape[0]
-            y_end = y_start + image_rgb.shape[0]
-            x_start = col * image_rgb.shape[1]
-            x_end = x_start + image_rgb.shape[1]
-            
-            grid_canvas[y_start:y_end, x_start:x_end] = mask_visualization
-        
-        # Save the monitoring visualization
-        monitoring_image = Image.fromarray(grid_canvas)
-        monitoring_image.save(monitoring_path)
-        print(f"Monitoring visualization saved: {monitoring_path}")
-    
-    def _visualize_mask(self, image_rgb, mask, score, mask_index, masks):
-        """
-        Create a visualization of a single mask with bounding box and score
-        """
-        # Create a copy of the image
-        visualization = image_rgb.copy()
-        
-        # Apply mask as semi-transparent overlay
-        mask_rgb = np.zeros_like(visualization)
-        mask_rgb[mask] = [255, 0, 0]  # Red color for mask
-        
-        # Blend mask with original image
-        alpha = 0.3
-        visualization = cv2.addWeighted(visualization, 1.0, mask_rgb, alpha, 0)
-        
-        # Draw bounding box
-        coords = np.column_stack(np.where(mask))
-        if len(coords) > 0:
-            y_min, x_min = coords.min(axis=0)
-            y_max, x_max = coords.max(axis=0)
-            
-            # Draw rectangle
-            cv2.rectangle(visualization, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
-            
-            # Draw center point
-            center_x = (x_min + x_max) // 2
-            center_y = (y_min + y_max) // 2
-            cv2.circle(visualization, (center_x, center_y), 5, (0, 255, 255), -1)
-        
-        # Add score text
-        score_text = f"Score: {score:.3f}"
-        cv2.putText(visualization, score_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
-                   0.7, (255, 255, 255), 2, cv2.LINE_AA)
-        
-        # Add mask number
-        mask_text = f"Mask {mask_index + 1}"
-        cv2.putText(visualization, mask_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 
-                   0.7, (255, 255, 255), 2, cv2.LINE_AA)
-        
-        return visualization
     
     def _enhance_green_contrast(self, image_rgb):
         """
@@ -277,10 +193,6 @@ def process_images(input_folder, output_folder, max_images=None, center_weight=1
     # Create output folder if it doesn't exist
     os.makedirs(output_folder, exist_ok=True)
     
-    # Create monitoring folder inside output folder
-    monitoring_folder = os.path.join(output_folder, "monitoring")
-    os.makedirs(monitoring_folder, exist_ok=True)
-    
     # Initialize SAM processor with hyperparameters
     processor = SAMImageProcessor(
         center_weight=center_weight,
@@ -314,11 +226,7 @@ def process_images(input_folder, output_folder, max_images=None, center_weight=1
         output_filename = f"segmented_{Path(image_path).stem}.png"
         output_path = os.path.join(output_folder, output_filename)
         
-        # Create monitoring path
-        monitoring_filename = f"monitoring_{Path(image_path).stem}.jpg"
-        monitoring_path = os.path.join(monitoring_folder, monitoring_filename)
-        
-        if processor.process_image(image_path, output_path, monitoring_path):
+        if processor.process_image(image_path, output_path):
             successful += 1
     
     print(f"Processing complete! {successful}/{len(image_files)} images processed successfully.")

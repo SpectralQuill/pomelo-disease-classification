@@ -9,7 +9,7 @@ from pathlib import Path
 import time
 
 class SAMImageProcessor:
-    def __init__(self, model_type="vit_h", checkpoint_path="preprocessing/sam_vit_h_4b8939.pth"):
+    def __init__(self, model_type="vit_h", checkpoint_path="cropper/sam_vit_h_4b8939.pth"):
         """
         Initialize the Segment Anything Model predictor
         """
@@ -67,11 +67,11 @@ class SAMImageProcessor:
                     best_mask = masks[override_index]
                     selected_mask_index = override_index + 1  # Store as 1-based for logging
                 else:
-                    print(f"Invalid override index {override_index + 1} for {image_name}, using circularity selection")
-                    best_mask, selected_mask_index = self._select_most_circular_mask(masks, scores, image_rgb.shape)
+                    print(f"Invalid override index {override_index + 1} for {image_name}, using advanced selection")
+                    best_mask, selected_mask_index = self._select_best_mask(masks, scores, image_rgb.shape)
             else:
-                # Use circularity-based selection
-                best_mask, selected_mask_index = self._select_most_circular_mask(masks, scores, image_rgb.shape)
+                # Use advanced selection with multiple criteria
+                best_mask, selected_mask_index = self._select_best_mask(masks, scores, image_rgb.shape)
             
             if best_mask is None:
                 print(f"No suitable mask found for {image_path}")
@@ -227,6 +227,14 @@ class SAMImageProcessor:
         cv2.putText(visualization, circularity_text, (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 
                    0.7, (255, 255, 255), 2, cv2.LINE_AA)
         
+        # Add size percentage
+        mask_area = np.sum(mask)
+        image_area = mask.shape[0] * mask.shape[1]
+        size_percent = (mask_area / image_area) * 100
+        size_text = f"Size: {size_percent:.1f}%"
+        cv2.putText(visualization, size_text, (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 
+                   0.7, (255, 255, 255), 2, cv2.LINE_AA)
+        
         return visualization
     
     def _calculate_circularity(self, mask):
@@ -254,34 +262,90 @@ class SAMImageProcessor:
         circularity = (4 * np.pi * area) / (perimeter * perimeter)
         return circularity
     
-    def _select_most_circular_mask(self, masks, scores, image_shape):
+    def _select_best_mask(self, masks, scores, image_shape):
         """
-        Select the mask that is most circular/elliptical
+        Select the best mask using multiple criteria: circularity, size, position, and edge distance
         """
         if len(masks) == 0:
             return None, None
         
-        circularity_scores = []
+        mask_scores = []
+        image_area = image_shape[0] * image_shape[1]
+        image_center = (image_shape[1] // 2, image_shape[0] // 2)
         
         for i, mask in enumerate(masks):
             # Calculate circularity
             circularity = self._calculate_circularity(mask)
             
-            # Combine with SAM confidence score
-            combined_score = circularity * scores[i]
+            # Calculate mask area and percentage of image
+            mask_area = np.sum(mask)
+            area_ratio = mask_area / image_area
             
-            circularity_scores.append((mask, combined_score, circularity, scores[i], i))
+            # Skip masks that are too small (e.g., less than 10% of image)
+            if area_ratio < 0.1:
+                continue
+                
+            # Calculate aspect ratio
+            coords = np.column_stack(np.where(mask))
+            if len(coords) > 0:
+                y_min, x_min = coords.min(axis=0)
+                y_max, x_max = coords.max(axis=0)
+                width = x_max - x_min
+                height = y_max - y_min
+                aspect_ratio = max(width/height, height/width) if min(width, height) > 0 else float('inf')
+            else:
+                aspect_ratio = float('inf')
+            
+            # Skip masks with extreme aspect ratios
+            if aspect_ratio > 2.5:  # Too elongated
+                continue
+                
+            # Calculate center position and distance from image center
+            mask_center_x = (x_min + x_max) // 2
+            mask_center_y = (y_min + y_max) // 2
+            center_distance = np.sqrt((mask_center_x - image_center[0])**2 + 
+                                     (mask_center_y - image_center[1])**2)
+            max_distance = np.sqrt(image_center[0]**2 + image_center[1]**2)
+            position_score = 1 - (center_distance / max_distance)  # 1 = centered, 0 = at corner
+            
+            # Calculate edge proximity penalty
+            edge_distance = min(x_min, image_shape[1]-x_max, y_min, image_shape[0]-y_max)
+            edge_penalty = 0 if edge_distance > 20 else (1 - edge_distance/20)  # Penalty if close to edge
+            
+            # Combined score (weights can be adjusted)
+            combined_score = (
+                0.4 * circularity + 
+                0.3 * scores[i] + 
+                0.2 * min(1.0, area_ratio * 3) +  # Normalize area contribution
+                0.1 * position_score -
+                0.2 * edge_penalty
+            )
+            
+            mask_scores.append((mask, combined_score, i))
         
-        # Sort by circularity score (highest first)
-        circularity_scores.sort(key=lambda x: x[1], reverse=True)
+        if not mask_scores:
+            return None, None
+            
+        # Sort by combined score (highest first)
+        mask_scores.sort(key=lambda x: x[1], reverse=True)
         
-        # Log the best circularity score for debugging
-        best_circularity = circularity_scores[0][2]
-        best_confidence = circularity_scores[0][3]
-        best_index = circularity_scores[0][4]
-        print(f"Best circularity: {best_circularity:.3f}, Confidence: {best_confidence:.3f}")
+        # Log the best score details for debugging
+        best_index = mask_scores[0][2]
+        best_mask = mask_scores[0][0]
+        best_score = mask_scores[0][1]
         
-        return circularity_scores[0][0], best_index + 1  # Return 1-based index
+        # Calculate metrics for the best mask
+        coords = np.column_stack(np.where(best_mask))
+        y_min, x_min = coords.min(axis=0)
+        y_max, x_max = coords.max(axis=0)
+        mask_area = np.sum(best_mask)
+        area_ratio = mask_area / image_area
+        
+        print(f"Best mask: Index {best_index + 1}, Score: {best_score:.3f}, "
+              f"Size: {area_ratio*100:.1f}% of image, "
+              f"Position: ({x_min}, {y_min}) to ({x_max}, {y_max})")
+        
+        return mask_scores[0][0], mask_scores[0][2] + 1  # Return 1-based index
     
     def _create_transparent_image(self, image_rgb, mask):
         """
@@ -416,8 +480,8 @@ if __name__ == "__main__":
         # Example: "image_name": mask_index (1-based)
         # "IMG_1234": 3,  # This will use the 3rd mask (index 2 internally)
         # "DSC_5678": 2,  # This will use the 2nd mask (index 1 internally)
-        "IMG20250703084935": 2,
-        "IMG20250703085534": 3
+        # "IMG20250703084935": 2,
+        # "IMG20250703085534": 3
     }
     
     # Uncomment the next line to use the hardcoded paths for testing

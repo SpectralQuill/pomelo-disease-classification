@@ -7,9 +7,10 @@ from segment_anything import SamPredictor, sam_model_registry
 import argparse
 from pathlib import Path
 import time
+import csv  # Added import
 
 class SAMImageProcessor:
-    def __init__(self, model_type="vit_h", checkpoint_path="preprocessing/sam_vit_h_4b8939.pth"):
+    def __init__(self, model_type="vit_h", checkpoint_path="cropper/sam_vit_h_4b8939.pth"):
         """
         Initialize the Segment Anything Model predictor
         """
@@ -368,7 +369,30 @@ class SAMImageProcessor:
         cropped = image_np[y_min:y_max+1, x_min:x_max+1]
         return Image.fromarray(cropped)
 
-def process_images(input_folder, output_folder, max_images=None, mask_override_dict=None):
+def read_csv_status(csv_path):
+    """
+    Read the CSV file and return a dictionary with image status
+    """
+    status_dict = {}
+    try:
+        with open(csv_path, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader)  # Skip header row
+            for row in reader:
+                if len(row) >= 4:
+                    image_name = row[0]
+                    # Check if both cropped and transparent background are TRUE
+                    is_processed = (row[2].upper() == "TRUE" and row[3].upper() == "TRUE")
+                    status_dict[image_name] = is_processed
+        print(f"Read status for {len(status_dict)} images from CSV")
+    except FileNotFoundError:
+        print(f"CSV file not found at {csv_path}. All images will be processed.")
+    except Exception as e:
+        print(f"Error reading CSV file: {e}. All images will be processed.")
+    
+    return status_dict
+
+def process_images(input_folder, output_folder, max_images=None, mask_override_dict=None, csv_path=None):
     """
     Process all images in the input folder and save results to output folder
     """
@@ -378,6 +402,11 @@ def process_images(input_folder, output_folder, max_images=None, mask_override_d
     # Create monitoring folder inside output folder
     monitoring_folder = os.path.join(output_folder, "monitoring")
     os.makedirs(monitoring_folder, exist_ok=True)
+    
+    # Read CSV status if provided
+    csv_status = {}
+    if csv_path:
+        csv_status = read_csv_status(csv_path)
     
     # Initialize SAM processor
     processor = SAMImageProcessor()
@@ -398,21 +427,29 @@ def process_images(input_folder, output_folder, max_images=None, mask_override_d
     if max_images is not None:
         image_files = image_files[:max_images]
     
-    print(f"Processing {len(image_files)} images...")
+    print(f"Found {len(image_files)} images...")
     
     # Process each image
     successful = 0
+    skipped = 0
     total_processing_time = 0
     processing_times = []
     
     for i, image_path in enumerate(image_files, 1):
+        image_name = Path(image_path).stem
         print(f"Processing image {i}/{len(image_files)}: {os.path.basename(image_path)}")
         
-        output_filename = f"{Path(image_path).stem}.png"
+        # Check if image is already processed according to CSV
+        if csv_path and image_name in csv_status and csv_status[image_name]:
+            print(f"Skipping already processed image: {image_name}")
+            skipped += 1
+            continue
+        
+        output_filename = f"{image_name}.png"
         output_path = os.path.join(output_folder, output_filename)
         
         # Create monitoring path
-        monitoring_filename = f"monitoring_{Path(image_path).stem}.jpg"
+        monitoring_filename = f"monitoring_{image_name}.jpg"
         monitoring_path = os.path.join(monitoring_folder, monitoring_filename)
         
         success, processing_time, mask_index = processor.process_image(
@@ -430,16 +467,19 @@ def process_images(input_folder, output_folder, max_images=None, mask_override_d
         min_time = min(processing_times)
         max_time = max(processing_times)
         print(f"\nProcessing complete! {successful}/{len(image_files)} images processed successfully.")
+        print(f"Skipped {skipped} already processed images.")
         print(f"Average processing time: {avg_time:.2f}s per image")
         print(f"Minimum time: {min_time:.2f}s, Maximum time: {max_time:.2f}s")
     else:
         print(f"\nProcessing complete! {successful}/{len(image_files)} images processed successfully.")
+        print(f"Skipped {skipped} already processed images.")
 
 def main():
     parser = argparse.ArgumentParser(description='Segment images using SAM and remove background')
     parser.add_argument('--input', '-i', required=True, help='Path to input folder with images')
     parser.add_argument('--output', '-o', required=True, help='Path to output folder for processed images')
     parser.add_argument('--max', '-m', type=int, default=None, help='Maximum number of images to process (optional)')
+    parser.add_argument('--csv', default=None, help='Path to CSV file tracking image processing status (optional)')
     
     args = parser.parse_args()
     
@@ -455,7 +495,8 @@ def main():
         args.input, 
         args.output, 
         args.max, 
-        mask_override_dict
+        mask_override_dict,
+        args.csv
     )
 
 if __name__ == "__main__":
@@ -463,6 +504,7 @@ if __name__ == "__main__":
     INPUT_FOLDER = "test_images"  # Change this to your input folder path
     OUTPUT_FOLDER = "test_output"  # Change this to your output folder path
     MAX_IMAGES = None  # Set to None to process all images, or a number to limit
+    CSV_PATH = "tracker/tracker.csv"  # Path to your CSV file
     
     # Mask override dictionary - use 1-based indices for user input
     MASK_OVERRIDE_DICT = {
@@ -474,7 +516,7 @@ if __name__ == "__main__":
     }
     
     # Uncomment the next line to use the hardcoded paths for testing
-    process_images(INPUT_FOLDER, OUTPUT_FOLDER, MAX_IMAGES, MASK_OVERRIDE_DICT)
+    process_images(INPUT_FOLDER, OUTPUT_FOLDER, MAX_IMAGES, MASK_OVERRIDE_DICT, CSV_PATH)
     
     # Or use command line arguments (comment out the line above)
     # main()

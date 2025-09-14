@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class SAMImageProcessor:
-    def __init__(self, model_type="vit_h", checkpoint_path="preprocessing/sam_vit_h_4b8939.pth", 
+    def __init__(self, model_type="vit_h", checkpoint_path="cropper/sam_vit_h_4b8939.pth", 
                  center_weight=1.0, area_weight=1.0, enhance_green=True):
         """
         Initialize the Segment Anything Model predictor

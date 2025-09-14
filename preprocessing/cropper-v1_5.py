@@ -23,7 +23,6 @@ class CitrusDetector:
         self.model.multi_label = False
         self.model.max_det = 1000
         self.min_pomelo_area = 5000
-        self.max_aspect_ratio = 1.4
         
         # Citrus-related classes and additional specified classes
         self.citrus_classes = {
@@ -75,22 +74,6 @@ class CitrusDetector:
         except Exception as e:
             print(f"Contrast enhancement failed: {e}")
             return image
-    
-    def is_valid_aspect_ratio(self, detection):
-        """
-        Check if detection has valid aspect ratio for citrus
-        Returns True if aspect ratio is below the maximum threshold
-        """
-        width = detection['xmax'] - detection['xmin']
-        height = detection['ymax'] - detection['ymin']
-        
-        # Avoid division by zero
-        if height == 0:
-            return False
-        
-        aspect_ratio = width / height if width >= height else height / width
-        # return aspect_ratio < self.max_aspect_ratio
-        return True
     
     def draw_bounding_boxes(self, image, detections, citrus_detections, valid_detections):
         """
@@ -169,27 +152,23 @@ class CitrusDetector:
         self.all_detected_classes.update(detected_classes)
         self.non_citrus_classes.update(detected_classes - self.citrus_classes)
         
-        # Apply size and aspect ratio filtering
+        # Apply size filtering only (aspect ratio filtering removed)
         valid_detections = []
         if not citrus_detections.empty:
             citrus_detections = citrus_detections.copy()
             citrus_detections['area'] = (citrus_detections['xmax'] - citrus_detections['xmin']) * \
                                       (citrus_detections['ymax'] - citrus_detections['ymin'])
             
-            # Apply both size and aspect ratio filtering
+            # Apply size filtering only
             for _, detection in citrus_detections.iterrows():
                 area = detection['area']
                 valid_size = area >= self.min_pomelo_area
-                valid_aspect = self.is_valid_aspect_ratio(detection)
                 
-                if valid_size and valid_aspect:
+                if valid_size:
                     valid_detections.append(detection)
                 else:
                     # Track why detection was rejected
-                    if not valid_size:
-                        self.detection_stats['rejected_small'] += 1
-                    if not valid_aspect:
-                        self.detection_stats['rejected_aspect_ratio'] += 1
+                    self.detection_stats['rejected_small'] += 1
         
         # Convert back to DataFrame for consistency
         if valid_detections:
@@ -206,14 +185,14 @@ class CitrusDetector:
         if citrus_detections.empty:
             return None, list(detected_classes), dict(class_counts), monitoring_image
         
-        # Find the largest bounding box (by area)
-        largest_detection = citrus_detections.loc[citrus_detections['area'].idxmax()]
+        # Find the detection with the highest confidence (instead of largest area)
+        highest_confidence_detection = citrus_detections.loc[citrus_detections['confidence'].idxmax()]
         
         # Convert coordinates to integers
-        xmin = int(largest_detection['xmin'])
-        ymin = int(largest_detection['ymin'])
-        xmax = int(largest_detection['xmax'])
-        ymax = int(largest_detection['ymax'])
+        xmin = int(highest_confidence_detection['xmin'])
+        ymin = int(highest_confidence_detection['ymin'])
+        xmax = int(highest_confidence_detection['xmax'])
+        ymax = int(highest_confidence_detection['ymax'])
         
         # Crop the image
         cropped_img = img[ymin:ymax, xmin:xmax]
@@ -249,7 +228,6 @@ class CitrusDetector:
         print(f"Using confidence threshold: {self.model.conf}")
         print(f"Using IOU threshold: {self.model.iou}")
         print(f"Minimum detection area: {self.min_pomelo_area}px")
-        print(f"Maximum aspect ratio: {self.max_aspect_ratio}")
         if self.monitor_images:
             print(f"Monitoring {len(self.monitor_images)} images for manual checking")
         
@@ -258,7 +236,7 @@ class CitrusDetector:
             log_file.write("CITRUS DETECTION PROCESSING LOG\n")
             log_file.write("=" * 50 + "\n\n")
             log_file.write(f"Configuration: conf={self.model.conf}, iou={self.model.iou}, ")
-            log_file.write(f"min_area={self.min_pomelo_area}px, max_aspect_ratio={self.max_aspect_ratio}\n\n")
+            log_file.write(f"min_area={self.min_pomelo_area}px\n\n")
             
             processed_count = 0
             successful_detections = 0
@@ -296,7 +274,6 @@ class CitrusDetector:
             log_file.write(f"Successful citrus detections: {successful_detections}\n")
             log_file.write(f"Failed detections: {processed_count - successful_detections}\n")
             log_file.write(f"Small detections skipped: {self.detection_stats['rejected_small']}\n")
-            log_file.write(f"Invalid aspect ratio skipped: {self.detection_stats['rejected_aspect_ratio']}\n")
             
             log_file.write(f"\nUnique non-citrus classes detected:\n")
             if self.non_citrus_classes:
@@ -308,7 +285,6 @@ class CitrusDetector:
         print(f"\nProcessing complete!")
         print(f"Processed {processed_count} images, found citrus in {successful_detections}")
         print(f"Skipped {self.detection_stats['rejected_small']} small detections")
-        print(f"Skipped {self.detection_stats['rejected_aspect_ratio']} invalid aspect ratio detections")
         if self.monitor_images:
             print(f"Monitoring images saved to: {self.monitor_folder}")
         print(f"Log file saved to: {self.log_file_path}")
@@ -323,12 +299,15 @@ def main():
     
     # Optional: List of image names to create monitoring images for
     MONITOR_IMAGES = [
+        "IMG20250703084918.jpg",
+        "IMG20250703085016.jpg",
         "IMG20250703085020.jpg",
-        "IMG20250703085604.jpg",
-        "IMG20250703085232.jpg",
-        "IMG20250703085555.jpg",
-        "IMG20250703085020.jpg",
-        "IMG20250703085125.jpg"
+        "IMG20250703085130.jpg",
+        "IMG20250703091756.jpg",
+        "IMG20250703093342.jpg",
+        "IMG20250703095249.jpg",
+        "IMG20250703100632.jpg",
+        "IMG20250801085047.jpg"
     ]
     
     # Initialize and run detector

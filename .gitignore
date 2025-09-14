@@ -1,4 +1,5 @@
 *.pt
+*.pth
 
 dataset
 test_images

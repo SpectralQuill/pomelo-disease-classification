@@ -96,7 +96,7 @@ def main():
     # ------------------------
     # Arbitrary variables
     # ------------------------
-    csv_path = r"your_file.csv"  # <-- Change this
+    csv_path = r"tracker/tracker.csv"  # <-- Change this
     class_folders = {
         "Processed": r"images\processed",
         "Partial": r"images\partial",

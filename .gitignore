@@ -1,5 +1,4 @@
 *.pth
 ~$*.xlsx
 
-dataset*
-test*
+images/*

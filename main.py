@@ -1,9 +1,14 @@
 from image_status_updater.image_status_updater_v2_0 import main as update_image_statuses
 from image_trimmer.image_trimmer_v1_0 import main as trim_images
-from pomelo_extractor.pomelo_extractor_v2_12 import main as extract_pomelos
+from pomelo_extractor.pomelo_extractor_v2_12 import run_pomelo_extractor
 
 def load_pomelo_extractor():
-    extract_pomelos()
+    run_pomelo_extractor(
+        r"images\raw",
+        r"images\extracted",
+        30, # max images
+        r"tracker\tracker.csv"
+    )
     print('Done')
 
 def load_image_status_updater():

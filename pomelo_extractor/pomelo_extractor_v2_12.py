@@ -21,7 +21,7 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 class PomeloExtractor:
-    def __init__(self, model_type="vit_h", checkpoint_path="cropper/sam_vit_h_4b8939.pth"):
+    def __init__(self, model_type="vit_h", checkpoint_path="pomelo_extractor/sam_vit_h_4b8939.pth"):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using device: {self.device}")
         self.sam = sam_model_registry[model_type](checkpoint=checkpoint_path)
@@ -257,7 +257,7 @@ def read_csv_status_and_overrides(csv_path):
         print(f"CSV file not found at {csv_path}. All images will be processed.")
     return status_dict, mask_override_dict, point_override_dict
 
-def process_images(input_folder, output_folder, max_images=None, csv_path=None):
+def run_pomelo_extractor(input_folder, output_folder, max_images=None, csv_path=None):
     global shutdown_requested
     os.makedirs(output_folder, exist_ok=True)
     monitoring_folder = os.path.join(output_folder, "monitoring")
@@ -270,7 +270,7 @@ def process_images(input_folder, output_folder, max_images=None, csv_path=None):
     all_files = [f for f in os.listdir(input_folder) if Path(f).suffix.lower() in image_extensions]
 
     # Filter out processed images BEFORE limiting
-    unprocessed_files = [os.path.join(input_folder, f) for f in all_files if not (csv_status.get(Path(f).stem, False))]
+    unprocessed_files = [os.path.join(input_folder, f) for f in all_files if (csv_status.get(Path(f).stem, False))]
 
     if max_images is not None:
         unprocessed_files = unprocessed_files[:max_images]
@@ -310,12 +310,11 @@ def main():
     parser.add_argument('--max', '-m', type=int, default=None)
     parser.add_argument('--csv', default=None)
     args = parser.parse_args()
-
-    process_images(args.input, args.output, args.max, args.csv)
+    run_pomelo_extractor(args.input, args.output, args.max, args.csv)
 
 if __name__ == "__main__":
     INPUT_FOLDER = r"images\raw"
     OUTPUT_FOLDER = r"images\extracted"
     MAX_IMAGES = 30
     CSV_PATH = r"tracker\tracker.csv"
-    process_images(INPUT_FOLDER, OUTPUT_FOLDER, MAX_IMAGES, CSV_PATH)
+    run_pomelo_extractor(INPUT_FOLDER, OUTPUT_FOLDER, MAX_IMAGES, CSV_PATH)

@@ -236,7 +236,7 @@ def read_csv_status_and_overrides(csv_path):
             for row in reader:
                 if len(row) >= 6:
                     image_name = row[0]
-                    is_skipped = (row[2].upper() in statuses_to_skip)
+                    is_skipped = (row[2] in statuses_to_skip)
                     status_dict[image_name] = is_skipped
 
                     # Mask override (col 4)
@@ -251,7 +251,7 @@ def read_csv_status_and_overrides(csv_path):
                     override_y = int(row[5]) if row[5].strip() else None
                     if override_x is not None or override_y is not None:
                         point_override_dict[image_name] = (override_x, override_y)
-
+        
         print(f"Read status and overrides for {len(status_dict)} images from CSV")
     except FileNotFoundError:
         print(f"CSV file not found at {csv_path}. All images will be processed.")
@@ -269,8 +269,9 @@ def run_pomelo_extractor(input_folder, output_folder, max_images=None, csv_path=
     image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
     all_files = [f for f in os.listdir(input_folder) if Path(f).suffix.lower() in image_extensions]
 
-    # Filter out processed images BEFORE limiting
-    unprocessed_files = [os.path.join(input_folder, f) for f in all_files if (csv_status.get(Path(f).stem, False))]
+    # Filter out skipped images BEFORE limiting
+    unprocessed_files = [os.path.join(input_folder, f) for f in all_files if not (csv_status.get(Path(f).stem, False))]
+
 
     if max_images is not None:
         unprocessed_files = unprocessed_files[:max_images]

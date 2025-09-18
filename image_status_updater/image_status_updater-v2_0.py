@@ -59,6 +59,8 @@ class PomeloStatusUpdater:
                     # Write class name to column 3
                     row[2] = class_name
 
+                    # make coyunter not update when alrewDY IN
+
                     # Update counter
                     self.class_counters[class_name] += 1
                 else:
@@ -96,12 +98,11 @@ def main():
     # ------------------------
     csv_path = r"your_file.csv"  # <-- Change this
     class_folders = {
-        # "class1": r"path\to\class1\images",
-        "Processed": r"",
-        # "Unprocessed": r"",
-        "Partial": r"",
-        "Incorrect": r"",
-        "Unusable": r""
+        "Processed": r"images\processed",
+        "Partial": r"images\partial",
+        "Incorrect": r"images\incorrect",
+        "Unusable": r"images\unusable",
+        # "Unprocessed": r""
     }
 
     updater = PomeloStatusUpdater(csv_path, class_folders)

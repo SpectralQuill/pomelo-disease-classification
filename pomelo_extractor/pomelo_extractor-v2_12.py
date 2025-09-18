@@ -9,7 +9,6 @@ from pathlib import Path
 import time
 import csv
 import signal
-import sys
 
 # Global flag for graceful shutdown
 shutdown_requested = False
@@ -21,7 +20,7 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-class SAMImageProcessor:
+class PomeloExtractor:
     def __init__(self, model_type="vit_h", checkpoint_path="cropper/sam_vit_h_4b8939.pth"):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using device: {self.device}")
@@ -265,7 +264,7 @@ def process_images(input_folder, output_folder, max_images=None, csv_path=None):
     os.makedirs(monitoring_folder, exist_ok=True)
 
     csv_status, mask_override_dict, point_override_dict = read_csv_status_and_overrides(csv_path) if csv_path else ({}, {}, {})
-    processor = SAMImageProcessor()
+    processor = PomeloExtractor()
 
     image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
     all_files = [f for f in os.listdir(input_folder) if Path(f).suffix.lower() in image_extensions]

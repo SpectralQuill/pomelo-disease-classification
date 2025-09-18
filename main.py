@@ -3,7 +3,12 @@ from image_trimmer.image_trimmer_v1_0 import main as trim_images
 from pomelo_extractor.pomelo_extractor_v2_12 import main as extract_pomelos
 
 def load_pomelo_extractor():
-    print('Coming soon...')
+    extract_pomelos()
+    print('Done')
+
+def load_image_status_updater():
+    update_image_statuses()
+    print('Done')
 
 def load_trimmer():
     trim_images()
@@ -11,9 +16,10 @@ def load_trimmer():
 
 choices = {
     "Load pomelo extractor": load_pomelo_extractor,
+    "Load image statuses": load_image_status_updater,
     "Load trimmer": load_trimmer
 }
-default_choice_number = 2
+default_choice_number = None
 
 def main():
     choice_keys = list(choices.keys())

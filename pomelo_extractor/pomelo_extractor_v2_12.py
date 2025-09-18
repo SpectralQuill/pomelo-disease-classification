@@ -314,8 +314,8 @@ def main():
     process_images(args.input, args.output, args.max, args.csv)
 
 if __name__ == "__main__":
-    INPUT_FOLDER = "test_images"
-    OUTPUT_FOLDER = "test_output"
-    MAX_IMAGES = 3
-    CSV_PATH = "tracker/tracker.csv"
+    INPUT_FOLDER = r"images\raw"
+    OUTPUT_FOLDER = r"images\extracted"
+    MAX_IMAGES = 30
+    CSV_PATH = r"tracker\tracker.csv"
     process_images(INPUT_FOLDER, OUTPUT_FOLDER, MAX_IMAGES, CSV_PATH)

@@ -1,5 +1,6 @@
 *.pth
 ~$*.xlsx
 
+__pycache__
 images/*
 remembrances

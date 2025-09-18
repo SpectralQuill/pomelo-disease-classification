@@ -96,9 +96,12 @@ def main():
     # ------------------------
     csv_path = r"your_file.csv"  # <-- Change this
     class_folders = {
-        "class1": r"path\to\class1\images",
-        "class2": r"path\to\class2\images",
-        # Add more classes if needed
+        # "class1": r"path\to\class1\images",
+        "Processed": r"",
+        # "Unprocessed": r"",
+        "Partial": r"",
+        "Incorrect": r"",
+        "Unusable": r""
     }
 
     updater = PomeloStatusUpdater(csv_path, class_folders)

@@ -4,3 +4,4 @@ opencv-python>=4.5.0
 pillow>=8.0.0
 segment-anything>=1.0
 numpy>=1.21.0
+scikit-image>=0.18.0

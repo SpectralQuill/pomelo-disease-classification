@@ -9,7 +9,7 @@ def load_pomelo_extractor():
         # output folder
         r"images\extracted",
         # max images
-        120,
+        30,
         # tracker CSV file
         r"tracker\tracker.csv"
     )

@@ -193,8 +193,21 @@ class PomeloExtractor:
         mask_area = np.sum(mask)
         image_area = image_shape[0] * image_shape[1]
         area_ratio = mask_area / image_area
-        combined_score = 0.4 * circularity + 0.3 * sam_score + 0.2 * min(1.0, area_ratio * 3)
-        return combined_score, circularity, area_ratio, 0
+        coords = np.column_stack(np.where(mask))
+        if len(coords) > 0:
+            y_min, x_min = coords.min(axis=0)
+            y_max, x_max = coords.max(axis=0)
+            mask_center_x = (x_min + x_max) // 2
+            mask_center_y = (y_min + y_max) // 2
+            image_center = (image_shape[1] // 2, image_shape[0] // 2)
+            center_distance = np.sqrt((mask_center_x - image_center[0])**2 + 
+                                    (mask_center_y - image_center[1])**2)
+            max_distance = np.sqrt(image_center[0]**2 + image_center[1]**2)
+            position_score = 1 - (center_distance / max_distance)
+        else:
+            position_score = 0
+        combined_score = 0.4 * circularity + 0.3 * sam_score + 0.2 * min(1.0, area_ratio * 3) + 0.1 * position_score
+        return combined_score, circularity, area_ratio, position_score
 
     def _calculate_circularity(self, mask):
         mask_uint8 = (mask * 255).astype(np.uint8)

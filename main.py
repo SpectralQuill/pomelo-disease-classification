@@ -1,12 +1,16 @@
-from image_status_updater.image_status_updater_v2_0 import main as update_image_statuses
+from image_status_updater.image_status_updater_v2_1 import main as update_image_statuses
 from image_trimmer.image_trimmer_v1_0 import main as trim_images
 from pomelo_extractor.pomelo_extractor_v2_12 import run_pomelo_extractor
 
 def load_pomelo_extractor():
     run_pomelo_extractor(
+        # input images
         r"images\raw",
+        # output folder
         r"images\extracted",
-        30, # max images
+        # max images
+        120,
+        # tracker CSV file
         r"tracker\tracker.csv"
     )
     print('Done')
@@ -21,7 +25,7 @@ def load_trimmer():
 
 choices = {
     "Load pomelo extractor": load_pomelo_extractor,
-    "Load image statuses": load_image_status_updater,
+    "Load image statuses updater": load_image_status_updater,
     "Load trimmer": load_trimmer
 }
 default_choice_number = None

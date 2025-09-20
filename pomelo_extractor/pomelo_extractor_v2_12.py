@@ -228,7 +228,7 @@ def read_csv_status_and_overrides(csv_path):
     status_dict = {}
     mask_override_dict = {}
     point_override_dict = {}
-    statuses_to_skip = {"Processed", "Partial", "Unusable"}
+    statuses_to_skip = {"Extracted", "Processed", "Partial", "Unusable"}
     try:
         with open(csv_path, 'r', newline='') as csvfile:
             reader = csv.reader(csvfile)
@@ -271,7 +271,6 @@ def run_pomelo_extractor(input_folder, output_folder, max_images=None, csv_path=
 
     # Filter out skipped images BEFORE limiting
     unprocessed_files = [os.path.join(input_folder, f) for f in all_files if not (csv_status.get(Path(f).stem, False))]
-
 
     if max_images is not None:
         unprocessed_files = unprocessed_files[:max_images]

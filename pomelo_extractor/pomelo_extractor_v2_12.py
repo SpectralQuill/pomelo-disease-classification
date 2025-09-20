@@ -27,6 +27,10 @@ class PomeloExtractor:
         self.sam = sam_model_registry[model_type](checkpoint=checkpoint_path)
         self.sam.to(device=self.device)
         self.predictor = SamPredictor(self.sam)
+        ideal_area_ratio = 1 / 3
+        self.ideal_area_ratio = ideal_area_ratio
+        self.area_score_coefficient_1 = ((1 - 2 * ideal_area_ratio) / (2 * ideal_area_ratio * (1 - ideal_area_ratio)))
+        self.area_score_coefficient_2 = (1 / (2 * ideal_area_ratio * (1 - ideal_area_ratio)))
     
     def process_image(self, image_path, output_path, monitoring_path=None,
                       mask_override_dict=None, point_override_dict=None):
@@ -155,7 +159,7 @@ class PomeloExtractor:
             mask_center_y = (y_min + y_max) // 2
             cv2.circle(visualization, (mask_center_x, mask_center_y), 5, (255, 0, 255), -1)
 
-        combined_score, circularity, area_ratio, position_score = self._calculate_combined_score(mask, score, image_rgb.shape)
+        combined_score, circularity, area_score, position_score = self._calculate_combined_score(mask, score, image_rgb.shape)
         y_offset, line_height = 30, 25
         text_color = [255, 0, 0]
         mask_text = f"Mask {mask_index + 1}{' (Selected)' if chosen else ''}"
@@ -170,7 +174,7 @@ class PomeloExtractor:
         sam_score_text = f"SAM Confidence: {score * 100:.1f}%"
         cv2.putText(visualization, sam_score_text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.7, text_color, 2, cv2.LINE_AA)
         y_offset += line_height
-        area_text = f"Image Area: {area_ratio * 100:.1f}%"
+        area_text = f"Area Score: {area_score * 100:.1f}%"
         cv2.putText(visualization, area_text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.7, text_color, 2, cv2.LINE_AA)
         y_offset += line_height
         position_text = f"Position Score: {position_score * 100:.1f}%"
@@ -193,6 +197,11 @@ class PomeloExtractor:
         mask_area = np.sum(mask)
         image_area = image_shape[0] * image_shape[1]
         area_ratio = mask_area / image_area
+        area_score = (
+            1
+            + self.area_score_coefficient_1 * (area_ratio - self.ideal_area_ratio)
+            - self.area_score_coefficient_2 * abs(area_ratio - self.ideal_area_ratio)
+        )
         coords = np.column_stack(np.where(mask))
         if len(coords) > 0:
             y_min, x_min = coords.min(axis=0)
@@ -206,8 +215,8 @@ class PomeloExtractor:
             position_score = 1 - (center_distance / max_distance)
         else:
             position_score = 0
-        combined_score = 0.4 * circularity + 0.3 * sam_score + 0.2 * min(1.0, area_ratio * 3) + 0.1 * position_score
-        return combined_score, circularity, area_ratio, position_score
+        combined_score = 0.4 * circularity + 0.3 * sam_score + 0.2 * area_score + 0.1 * position_score
+        return combined_score, circularity, area_score, position_score
 
     def _calculate_circularity(self, mask):
         mask_uint8 = (mask * 255).astype(np.uint8)
@@ -245,21 +254,17 @@ def read_csv_status_and_overrides(csv_path):
     try:
         with open(csv_path, 'r', newline='') as csvfile:
             reader = csv.reader(csvfile)
-            next(reader)  # skip header
+            next(reader)
             for row in reader:
                 if len(row) >= 6:
                     image_name = row[0]
                     is_skipped = (row[2] in statuses_to_skip)
                     status_dict[image_name] = is_skipped
-
-                    # Mask override (col 4)
                     if row[3].strip():
                         try:
                             mask_override_dict[image_name] = int(row[3])
                         except ValueError:
                             pass
-
-                    # Point overrides (cols 5 and 6)
                     override_x = int(row[4]) if row[4].strip() else None
                     override_y = int(row[5]) if row[5].strip() else None
                     if override_x is not None or override_y is not None:
@@ -282,7 +287,6 @@ def run_pomelo_extractor(input_folder, output_folder, max_images=None, csv_path=
     image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
     all_files = [f for f in os.listdir(input_folder) if Path(f).suffix.lower() in image_extensions]
 
-    # Filter out skipped images BEFORE limiting
     unprocessed_files = [os.path.join(input_folder, f) for f in all_files if not (csv_status.get(Path(f).stem, False))]
 
     if max_images is not None:

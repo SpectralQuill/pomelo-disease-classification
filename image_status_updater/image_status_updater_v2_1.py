@@ -49,6 +49,8 @@ class PomeloStatusUpdater:
                 print(f"Warning: folder '{folder}' not found. Skipping...")
                 continue
             for file in os.listdir(folder):
+                if not file.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif')):
+                    continue
                 file_path = os.path.join(folder, file)
                 if not os.path.isfile(file_path):
                     continue

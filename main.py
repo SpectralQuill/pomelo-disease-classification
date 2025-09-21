@@ -1,6 +1,6 @@
 from image_status_updater.image_status_updater_v2_1 import main as update_image_statuses
 from image_trimmer.image_trimmer_v1_0 import main as trim_images
-from pomelo_extractor.pomelo_extractor_v2_12 import run_pomelo_extractor
+from pomelo_extractor.pomelo_extractor_v2_13 import run_pomelo_extractor
 
 def load_pomelo_extractor():
     run_pomelo_extractor(
@@ -9,9 +9,11 @@ def load_pomelo_extractor():
         # output folder
         r"images\extracted",
         # max images
-        30,
+        60,
         # tracker CSV file
-        r"tracker\tracker.csv"
+        r"tracker\tracker.csv",
+        # ignored subfolders
+        set()
     )
     print('Done')
 

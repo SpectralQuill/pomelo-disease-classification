@@ -1,23 +1,43 @@
 import os
 import csv
 import shutil
+import argparse
 from datetime import datetime
 import openpyxl
 
 class PomeloStatusUpdater:
-    def __init__(self, csv_path, class_folders, backups_path, excel_path):
+    CONFIG_COLUMNS = {
+        "STATUS": 0,
+        "FOLDER_PATH": 2,
+        "INCLUDE": 4
+    }
+
+    def __init__(self, csv_path, backups_path, excel_path):
         self.csv_path = csv_path
-        self.class_folders = class_folders
         self.backups_path = backups_path
         self.excel_path = excel_path
-
-        self.class_stats = {cls: {"rewrites": 0, "deletions": 0} for cls in class_folders.keys()}
-
+        self.status_folders = self.load_status_folders_from_config()
+        self.class_stats = {cls: {"rewrites": 0, "deletions": 0} for cls in self.status_folders.keys()}
         self.not_found_images = []
         self.rows = []
         self.header = []
         self.csv_lookup = {}
         self.image_class_map = {}
+
+    def load_status_folders_from_config(self):
+        status_folders = {}
+        with open("configs\\image_statuses.csv", 'r', newline='') as config_file:
+            reader = csv.reader(config_file)
+            next(reader)
+            for row in reader:
+                if (len(row) > self.CONFIG_COLUMNS["INCLUDE"] and 
+                    row[self.CONFIG_COLUMNS["INCLUDE"]].upper() == "TRUE"):
+                    if (len(row) > self.CONFIG_COLUMNS["FOLDER_PATH"] and 
+                        row[self.CONFIG_COLUMNS["FOLDER_PATH"]]):
+                        status_name = row[self.CONFIG_COLUMNS["STATUS"]]
+                        folder_path = row[self.CONFIG_COLUMNS["FOLDER_PATH"]]
+                        status_folders[status_name] = folder_path
+        return status_folders
 
     def make_backup(self):
         file_name = os.path.split(self.csv_path)[1]
@@ -42,9 +62,9 @@ class PomeloStatusUpdater:
         while len(self.header) < 3:
             self.header.append(f"col{len(self.header)+1}")
 
-    def process_class_folders(self):
+    def process_status_folders(self):
         original_class_map = {}
-        for class_name, folder in self.class_folders.items():
+        for class_name, folder in self.status_folders.items():
             if not os.path.isdir(folder):
                 print(f"Warning: folder '{folder}' not found. Skipping...")
                 continue
@@ -66,7 +86,7 @@ class PomeloStatusUpdater:
                     if image_name in self.image_class_map:
                         prev_class = self.image_class_map[image_name]
                         if prev_class != class_name:
-                            prev_folder = self.class_folders[prev_class]
+                            prev_folder = self.status_folders[prev_class]
                             prev_file_path = os.path.join(prev_folder, file)
                             if os.path.exists(prev_file_path):
                                 os.remove(prev_file_path)
@@ -115,28 +135,38 @@ class PomeloStatusUpdater:
             print("\nNo missing images.")
 
     def run(self):
+        print(f"Loaded {len(self.status_folders)} classes from configuration:")
+        for cls, folder in self.status_folders.items():
+            print(f"  {cls}: {folder}")
         self.make_backup()
         self.load_csv()
-        self.process_class_folders()
+        self.process_status_folders()
         self.save_csv()
         self.export_to_excel()
         self.print_results()
 
 
-def main():
-    csv_path = r"tracker\tracker.csv"
-    class_folders = {
-        "Extracted": r"images\extracted",
-        "Incorrect": r"images\incorrect",
-        "Partial": r"images\partial",
-        "Processed": r"images\processed",
-        "Unusable": r"images\unusable"
-    }
-    backups_path = r"tracker\backups"
-    excel_path = r"tracker\stats.xlsx"
+def run_pomelo_status_updater(csv_path, backups_path, excel_path):
+    try:
+        updater = PomeloStatusUpdater(csv_path, backups_path, excel_path)
+        updater.run()
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        print("Please make sure the configuration file exists at the specified path")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
-    updater = PomeloStatusUpdater(csv_path, class_folders, backups_path, excel_path)
-    updater.run()
+
+def main():
+    parser = argparse.ArgumentParser(description='Update image statuses in CSV based on folder organization')
+    parser.add_argument('--csv_path', default=r"tracker\tracker.csv", 
+                       help='Path to the main CSV file (default: tracker\\tracker.csv)')
+    parser.add_argument('--backups_path', default=r"tracker\backups", 
+                       help='Path to backup directory (default: tracker\\backups)')
+    parser.add_argument('--excel_path', default=r"tracker\stats.xlsx", 
+                       help='Path to Excel output file (default: tracker\\stats.xlsx)')
+    args = parser.parse_args()
+    run_pomelo_status_updater(args.csv_path, args.backups_path, args.excel_path)
 
 
 if __name__ == "__main__":

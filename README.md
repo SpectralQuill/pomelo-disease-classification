@@ -1,6 +1,9 @@
 # pomelo-disease-classification
 For BSCS Thesis by Agawin, Apostol, and Cabangbang
 
+# Requirements Installation
+pip install -r requirements.txt
+
 # CSV Tracker Statuses
 Possible Values:
     1. Unprocessed  - No action(s) have been done on image.

@@ -1,7 +1,9 @@
+.env
 *.pth
 ~$*.xlsx
-snippet*
+snippet.txt
+tracker/class_updates.csv
 
 __pycache__
-images/*
+/images/*
 remembrances

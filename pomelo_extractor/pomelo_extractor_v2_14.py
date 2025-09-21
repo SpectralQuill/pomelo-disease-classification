@@ -21,7 +21,6 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 class PomeloExtractor:
-    # CSV column mapping
     CSV_COLUMNS = {
         'NAME': 0,
         'CLASS': 1,
@@ -276,56 +275,71 @@ def read_csv_status_and_overrides(csv_path):
     mask_override_dict = {}
     point_override_dict = {}
     debug_dict = {}
-    statuses_to_skip = {"Extracted", "Processed", "Partial", "Unusable"}
-    try:
-        with open(csv_path, 'r', newline='') as csvfile:
-            reader = csv.reader(csvfile)
-            next(reader)
+    
+    statuses_to_skip = set()
+    with open("configs\\image_statuses.csv", 'r', newline='') as config_file:
+        reader = csv.reader(config_file)
+        headers = next(reader)
+        included_col_index = None
+        for i, header in enumerate(headers):
+            if header.strip().lower() == "included in extraction":
+                included_col_index = i
+                break
+        if included_col_index is not None:
             for row in reader:
-                if len(row) > PomeloExtractor.CSV_COLUMNS['NAME']:
-                    image_name = row[PomeloExtractor.CSV_COLUMNS['NAME']]
-                    
-                    # Check if we should skip this image (unless it's a debug image)
-                    is_skipped = (len(row) > PomeloExtractor.CSV_COLUMNS['STATUS'] and 
-                                 row[PomeloExtractor.CSV_COLUMNS['STATUS']] in statuses_to_skip)
-                    
-                    # Check if this is a debug image
-                    is_debug = (len(row) > PomeloExtractor.CSV_COLUMNS['DEBUG'] and 
-                               row[PomeloExtractor.CSV_COLUMNS['DEBUG']].upper() == "TRUE")
-                    
-                    # Debug images override skip status
-                    status_dict[image_name] = is_skipped and not is_debug
-                    debug_dict[image_name] = is_debug
-                    
-                    # Read mask override if available
-                    if (len(row) > PomeloExtractor.CSV_COLUMNS['MASK_INDEX'] and 
-                        row[PomeloExtractor.CSV_COLUMNS['MASK_INDEX']].strip()):
-                        try:
-                            mask_override_dict[image_name] = int(row[PomeloExtractor.CSV_COLUMNS['MASK_INDEX']])
-                        except ValueError:
-                            pass
-                    
-                    # Read point overrides if available
-                    override_x = None
-                    override_y = None
-                    if len(row) > PomeloExtractor.CSV_COLUMNS['X_POINT_OVERRIDE']:
-                        try:
-                            override_x = int(row[PomeloExtractor.CSV_COLUMNS['X_POINT_OVERRIDE']]) if row[PomeloExtractor.CSV_COLUMNS['X_POINT_OVERRIDE']].strip() else None
-                        except ValueError:
-                            pass
-                    
-                    if len(row) > PomeloExtractor.CSV_COLUMNS['Y_POINT_OVERRIDE']:
-                        try:
-                            override_y = int(row[PomeloExtractor.CSV_COLUMNS['Y_POINT_OVERRIDE']]) if row[PomeloExtractor.CSV_COLUMNS['Y_POINT_OVERRIDE']].strip() else None
-                        except ValueError:
-                            pass
-                    
-                    if override_x is not None or override_y is not None:
-                        point_override_dict[image_name] = (override_x, override_y)
-        
-        print(f"Read status and overrides for {len(status_dict)} images from CSV")
-    except FileNotFoundError:
-        print(f"CSV file not found at {csv_path}. All images will be processed.")
+                if len(row) > 0:
+                    status_name = row[0].strip()
+                    if len(row) > included_col_index and row[included_col_index].upper() == "TRUE":
+                        continue
+                    else:
+                        statuses_to_skip.add(status_name)
+    
+    with open(csv_path, 'r', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)
+        for row in reader:
+            if len(row) > PomeloExtractor.CSV_COLUMNS['NAME']:
+                image_name = row[PomeloExtractor.CSV_COLUMNS['NAME']]
+                
+                # Check if we should skip this image (unless it's a debug image)
+                is_skipped = (len(row) > PomeloExtractor.CSV_COLUMNS['STATUS'] and 
+                                row[PomeloExtractor.CSV_COLUMNS['STATUS']] in statuses_to_skip)
+                
+                # Check if this is a debug image
+                is_debug = (len(row) > PomeloExtractor.CSV_COLUMNS['DEBUG'] and 
+                            row[PomeloExtractor.CSV_COLUMNS['DEBUG']].upper() == "TRUE")
+                
+                # Debug images override skip status
+                status_dict[image_name] = is_skipped and not is_debug
+                debug_dict[image_name] = is_debug
+                
+                # Read mask override if available
+                if (len(row) > PomeloExtractor.CSV_COLUMNS['MASK_INDEX'] and 
+                    row[PomeloExtractor.CSV_COLUMNS['MASK_INDEX']].strip()):
+                    try:
+                        mask_override_dict[image_name] = int(row[PomeloExtractor.CSV_COLUMNS['MASK_INDEX']])
+                    except ValueError:
+                        pass
+                
+                # Read point overrides if available
+                override_x = None
+                override_y = None
+                if len(row) > PomeloExtractor.CSV_COLUMNS['X_POINT_OVERRIDE']:
+                    try:
+                        override_x = int(row[PomeloExtractor.CSV_COLUMNS['X_POINT_OVERRIDE']]) if row[PomeloExtractor.CSV_COLUMNS['X_POINT_OVERRIDE']].strip() else None
+                    except ValueError:
+                        pass
+                
+                if len(row) > PomeloExtractor.CSV_COLUMNS['Y_POINT_OVERRIDE']:
+                    try:
+                        override_y = int(row[PomeloExtractor.CSV_COLUMNS['Y_POINT_OVERRIDE']]) if row[PomeloExtractor.CSV_COLUMNS['Y_POINT_OVERRIDE']].strip() else None
+                    except ValueError:
+                        pass
+                
+                if override_x is not None or override_y is not None:
+                    point_override_dict[image_name] = (override_x, override_y)
+    
+    print(f"Read status and overrides for {len(status_dict)} images from CSV")
     return status_dict, mask_override_dict, point_override_dict, debug_dict
 
 def run_pomelo_extractor(input_folder, output_folder, max_images=None, csv_path=None,
@@ -425,19 +439,14 @@ def run_pomelo_extractor(input_folder, output_folder, max_images=None, csv_path=
         print(f"\nProcessing complete! No images processed successfully.")
 
 def main():
-    parser = argparse.ArgumentParser(description='Segment images using SAM and remove background')
-    parser.add_argument('--input', '-i', required=True)
-    parser.add_argument('--output', '-o', required=True)
+    parser = argparse.ArgumentParser(description='Segment pomelo images using SAM and remove background')
+    parser.add_argument('--input', '-i', default=r"images\raw", required=True)
+    parser.add_argument('--output', '-o', default=r"images\extracted", required=True)
     parser.add_argument('--max', '-m', type=int, default=None)
-    parser.add_argument('--csv', default=None)
+    parser.add_argument('--csv', default=r"tracker\tracker.csv")
     parser.add_argument('--ignore', nargs='+', default=[], help='Subfolder names to ignore')
     args = parser.parse_args()
     run_pomelo_extractor(args.input, args.output, args.max, args.csv, set(args.ignore))
 
 if __name__ == "__main__":
-    INPUT_FOLDER = r"images\raw"
-    OUTPUT_FOLDER = r"images\extracted"
-    MAX_IMAGES = 30
-    CSV_PATH = r"tracker\tracker.csv"
-    IGNORE_SUBFOLDERS = set()
-    run_pomelo_extractor(INPUT_FOLDER, OUTPUT_FOLDER, MAX_IMAGES, CSV_PATH, IGNORE_SUBFOLDERS)
+    main()

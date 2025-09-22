@@ -1,8 +1,9 @@
 .env
 *.pth
 ~$*.xlsx
+
+configs/users.csv
 snippet.txt
-tracker/class_updates.csv
 
 __pycache__
 /images/*

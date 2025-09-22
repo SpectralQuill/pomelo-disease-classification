@@ -1,9 +1,9 @@
-﻿Class,Description,Included in Class Updater,
-Unlabeled,,FALSE,
-Anthracnose,,TRUE,
-Borer,,TRUE,
-Canker,,TRUE,
-Healthy,,TRUE,
-Mites,,TRUE,
-Multiple,,TRUE,
-Conflicted,,FALSE,
+﻿Name,Description,Included in Class Updater
+Unlabeled,,FALSE
+Anthracnose,,TRUE
+Borer,,TRUE
+Canker,,TRUE
+Healthy,,TRUE
+Mites,,TRUE
+Multiple,,TRUE
+Conflicted,,FALSE

@@ -5,7 +5,7 @@ from pomelo_extractor.pomelo_extractor_v2_14 import run_pomelo_extractor
 def load_pomelo_extractor():
     input_folder = r"images\raw"
     output_folder = r"images\extracted"
-    max_images = 20
+    max_images = 60
     csv_path = r"tracker\tracker.csv"
     ignore_subfolders = []
     run_pomelo_extractor(input_folder, output_folder, max_images, csv_path, ignore_subfolders)

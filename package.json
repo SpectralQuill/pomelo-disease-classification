@@ -12,7 +12,7 @@
     "frontend:android": "cd app/frontend && npm run android",
     "frontend:android:symlink": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const frontendPath = process.env.FRONTEND_SYMLINK || 'app/frontend'; execSync('npm run android', { cwd: frontendPath, stdio: 'inherit' });\"",
     "frontend:ios": "cd app/frontend && npm run ios",
-    "frontend:ios:symlink": "cd %FRONTEND_SYMLINK% && npm run ios",
+    "frontend:ios:symlink": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const frontendPath = process.env.FRONTEND_SYMLINK || 'app/frontend'; execSync('npm run ios', { cwd: frontendPath, stdio: 'inherit' });\"",
     "frontend:web": "cd app/frontend && npm run web"
   },
   "private": true

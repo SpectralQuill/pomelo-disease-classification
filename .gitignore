@@ -1,10 +1,69 @@
-.env
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+**/node_modules/
 *.pth
+
+# Expo native build output
+android/
+ios/
+
+# Metro + Expo cache
+.expo/
+.expo-shared/
+.expo/web-cache/
+.expo/web/
+.expo/packager-info.json
+.expo/devices.json
+expo-env.d.ts
+
+# Build outputs
+dist/
+web-build/
+*.apk
+*.aab
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# config files
+.env
+.env*.local
+users.csv
+
+# typescript
+*.tsbuildinfo
+
+# python
+__pycache__
+
+# dataset
+/images
+remembrances
+
+# others
+.idea/
 ~$*.xlsx
 
-configs/users.csv
+# dev
+backup_files/
 snippet.txt
-
-__pycache__
-/images/*
-remembrances

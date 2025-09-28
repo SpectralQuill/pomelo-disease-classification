@@ -18,8 +18,15 @@ export default function MainScreen() {
           backgroundColor: theme.colors.primary,
           borderTopWidth: 0,
           elevation: 5,
-          height: 60,
+          height: 100,
         },
+        tabBarIcon: ({ color, size, focused }) => (
+          <MaterialIcons
+            name={focused ? "home" : "home"} 
+            color={color}
+            size={size + 20}
+          />
+        ),
       }}
     >
       <Tab.Screen

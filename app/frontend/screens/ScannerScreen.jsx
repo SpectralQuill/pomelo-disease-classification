@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, Button } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import {IconButton} from "react-native-paper";
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 export default function ScannerScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -9,7 +10,9 @@ export default function ScannerScreen({ navigation }) {
   const cameraRef = useRef(null);
 
   if (!permission) {
-    return <View><Text>Requesting permissions...</Text></View>;
+    return <View style ={{flex:1, justifyContent: 'center', alignItems: 'center'}}>
+      <Text>Requesting permissions...</Text>
+      </View>;
   }
 
   if (!permission.granted) {
@@ -44,7 +47,9 @@ export default function ScannerScreen({ navigation }) {
             size={45}
             onPress={takePicture} />
         <IconButton
-            icon="camera-switch"
+            icon={() => (
+              <MaterialIcons name='cameraswitch' size={28} color={'#fff'} />
+            )}
             iconColor="white"
             size={20}
             onPress={handleCameraSwitching}
@@ -58,9 +63,15 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   camera: { flex: 1 },
   buttonContainer: {
-    flexDirection: 'row',
-    position: 'absolute',
-    bottom: 40,
-    alignSelf: 'center',
-  },
+  flexDirection: 'row',
+  position: 'absolute',
+  bottom: 40,
+  width: '90%',
+  alignSelf: 'center',
+  borderRadius: 20,
+  backgroundColor: 'rgba(0,0,0,0.6)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  paddingVertical: 10,
+},
 });

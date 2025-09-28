@@ -27,6 +27,7 @@ export const appStyle = StyleSheet.create({
     },
     screen: {
         flex: 1,
+        padding: 30,
     }
 
 });

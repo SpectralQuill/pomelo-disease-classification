@@ -1,9 +1,10 @@
-﻿Name,Description,Included in Class Updater
-Unlabeled,,FALSE
-Anthracnose,,TRUE
-Borer,,TRUE
-Canker,,TRUE
-Healthy,,TRUE
-Mites,,TRUE
-Multiple,,TRUE
-Conflicted,,FALSE
+﻿Name,Description,Included in Class Updater,Included in Model,Folder Name
+Unlabeled,,FALSE,FALSE,unlabeled
+Anthracnose,,TRUE,TRUE,anthracnose
+Borer,,TRUE,TRUE,borer
+Canker,,TRUE,TRUE,canker
+Healthy,,TRUE,TRUE,healthy
+Mites,,TRUE,TRUE,mites
+Multiple,,TRUE,FALSE,multiple
+Conflicted,,FALSE,FALSE,conflicted
+Unusable,,FALSE,FALSE,unusable

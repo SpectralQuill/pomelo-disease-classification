@@ -1,6 +1,16 @@
 from image_status_updater.image_status_updater_v2_2 import main as update_image_statuses
 from image_trimmer.image_trimmer_v1_0 import main as trim_images
+from pomelo_dataset_organizer.pomelo_dataset_organizer_v1_0 import run_pomelo_dataset_organizer
 from pomelo_extractor.pomelo_extractor_v2_14 import run_pomelo_extractor
+
+def load_pomelo_dataset_organizer():
+    images_folder = r"images\raw"
+    labeling_file = r"tracker\tracker.csv"
+    sheet_name = "Classes"
+    name_column = "Name"
+    class_column = None
+    run_pomelo_dataset_organizer(images_folder, labeling_file, sheet_name, name_column,
+                                 class_column)
 
 def load_pomelo_extractor():
     input_folder = r"images\raw"
@@ -8,7 +18,8 @@ def load_pomelo_extractor():
     max_images = 60
     csv_path = r"tracker\tracker.csv"
     ignore_subfolders = []
-    run_pomelo_extractor(input_folder, output_folder, max_images, csv_path, ignore_subfolders)
+    run_pomelo_extractor(input_folder, output_folder, max_images, csv_path,
+                         ignore_subfolders)
 
 def load_image_class_updater():
     print("The script is a Jupyter notebook file and cannot be run in this console. Please run the latest version in image_status_updater folder.")
@@ -25,7 +36,8 @@ choices = {
     "Load pomelo extractor": load_pomelo_extractor,
     "Load image statuses updater": load_image_status_updater,
     "Load trimmer": load_trimmer,
-    "Load image class updater": load_image_class_updater
+    "Load image class updater": load_image_class_updater,
+    "Load pomelo dataset organizer": load_pomelo_dataset_organizer
 }
 default_choice_number = None
 

@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "scripts": {
     "dataset_tools:install": "pip install -r requirements.txt",
+    "dataset_tools:start": "python main.py",
     "image_lister": "python image_lister/image_lister_v1_0.py",
     "image_status_updater": "python image_status_updater/image_status_updater_v2_2.py",
     "image_trimmer": "python image_trimmer/image_trimmer_v1_0.py",
+    "pomelo_dataset_organizer": "python pomelo_dataset_organizer/pomelo_dataset_organizer_v1_0.py",
     "pomelo_extractor": "python pomelo_extractor/pomelo_extractor_v2_14.py",
 
     "frontend:install": "cd app/frontend && npm install",

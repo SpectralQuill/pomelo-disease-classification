@@ -1,0 +1,20 @@
+{
+  "name": "pomelo-disease-classification",
+  "version": "1.0.0",
+  "scripts": {
+    "dataset_tools:install": "pip install -r requirements.txt",
+    "image_lister": "python image_lister/image_lister_v1_0.py",
+    "image_status_updater": "python image_status_updater/image_status_updater_v2_2.py",
+    "image_trimmer": "python image_trimmer/image_trimmer_v1_0.py",
+    "pomelo_extractor": "python pomelo_extractor/pomelo_extractor_v2_14.py",
+
+    "frontend:install": "cd app/frontend && npm install",
+    "frontend:start": "cd app/frontend && npm run start",
+    "frontend:android": "cd app/frontend && npm run android",
+    "frontend:android:symlink": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const frontendPath = process.env.FRONTEND_SYMLINK || 'app/frontend'; execSync('npm run android', { cwd: frontendPath, stdio: 'inherit' });\"",
+    "frontend:ios": "cd app/frontend && npm run ios",
+    "frontend:ios:symlink": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const frontendPath = process.env.FRONTEND_SYMLINK || 'app/frontend'; execSync('npm run ios', { cwd: frontendPath, stdio: 'inherit' });\"",
+    "frontend:web": "cd app/frontend && npm run web"
+  },
+  "private": true
+}

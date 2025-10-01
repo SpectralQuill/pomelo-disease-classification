@@ -1,18 +1,21 @@
-import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
+import AppHeader from '../components/AppHeader';
+import { appStyle } from '../theme/style';
 
 const ResultScreen = ({ route }) => {
   const { photoUri } = route.params || {};
 
-  //Next thing to do: there should be a different view for a failed capture and a successful capture
+  //Result screen have a different layout than the rest, so it should only have the header
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Result</Text>
+    <View style={appStyle.container}>
+      <AppHeader/>
       {photoUri ? (
         <Image source={{ uri: photoUri }} style={styles.image} />
       ) : (
         <Text>No image captured</Text>
       )}
+      <Text style={styles.title}>Result</Text>
+      
       <Text>Description of scanned pomelo goes here</Text>
     </View>
   );

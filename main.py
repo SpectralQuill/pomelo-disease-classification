@@ -1,16 +1,13 @@
 from image_status_updater.image_status_updater_v2_2 import main as update_image_statuses
 from image_trimmer.image_trimmer_v1_0 import main as trim_images
-from pomelo_dataset_organizer.pomelo_dataset_organizer_v1_0 import run_pomelo_dataset_organizer
-from pomelo_extractor.pomelo_extractor_v2_14 import run_pomelo_extractor
+from pomelo_dataset_organizer.pomelo_dataset_organizer_v2_0 import run_pomelo_dataset_organizer
+from pomelo_extractor.pomelo_extractor_v2_15 import run_pomelo_extractor
 
 def load_pomelo_dataset_organizer():
-    images_folder = r"images\raw"
-    labeling_file = r"tracker\tracker.csv"
-    sheet_name = "Classes"
-    name_column = "Name"
-    class_column = None
-    run_pomelo_dataset_organizer(images_folder, labeling_file, sheet_name, name_column,
-                                 class_column)
+    google_drive_folder = os.environ['DATASET_GOOGLE_DRIVE_ID']
+    local_images_folder = r"images\processed"
+    labeling_csv = r"tracker\tracker.csv"
+    run_pomelo_dataset_organizer(google_drive_folder, local_images_folder, labeling_csv)
 
 def load_pomelo_extractor():
     input_folder = r"images\raw"

@@ -58,12 +58,14 @@ __pycache__
 
 # dataset
 /images
-remembrances
 
 # others
 .idea/
 ~$*.xlsx
 
+# Google Cloud
+client_secrets.json
+credentials.json
+
 # dev
-backup_files/
-snippet.txt
+/backup_files

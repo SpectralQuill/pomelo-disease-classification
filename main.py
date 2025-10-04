@@ -1,6 +1,6 @@
 from image_status_updater.image_status_updater_v2_2 import main as update_image_statuses
 from image_trimmer.image_trimmer_v1_0 import main as trim_images
-from pomelo_dataset_organizer.pomelo_dataset_organizer_v2_1 import run_pomelo_dataset_organizer
+from pomelo_dataset_organizer.pomelo_dataset_organizer_v2_2 import run_pomelo_dataset_organizer
 from pomelo_extractor.pomelo_extractor_v2_15 import run_pomelo_extractor
 
 def load_pomelo_dataset_organizer():

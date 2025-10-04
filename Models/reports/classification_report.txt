@@ -1,30 +1,30 @@
 Citrus Disease Classification Report
 ==================================================
 
-Overall Accuracy: 0.6027
+Overall Accuracy: 0.6575
 
 Anthracnose:
-  Precision: 0.3636
+  Precision: 0.5000
   Recall: 0.3333
-  F1-Score: 0.3478
+  F1-Score: 0.4000
   Support: 12.0
 
 Borer:
-  Precision: 0.8000
-  Recall: 0.5714
-  F1-Score: 0.6667
+  Precision: 0.8333
+  Recall: 0.7143
+  F1-Score: 0.7692
   Support: 7.0
 
 Canker:
-  Precision: 0.4000
-  Recall: 0.3636
-  F1-Score: 0.3810
+  Precision: 0.4286
+  Recall: 0.5455
+  F1-Score: 0.4800
   Support: 11.0
 
 Mite:
-  Precision: 0.7812
-  Recall: 0.7576
-  F1-Score: 0.7692
+  Precision: 0.8667
+  Recall: 0.7879
+  F1-Score: 0.8254
   Support: 33.0
 
 Healthy:

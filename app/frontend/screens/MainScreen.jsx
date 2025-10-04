@@ -52,7 +52,7 @@ export default function MainScreen() {
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="person" color={color} size={size} />
+            <MaterialIcons name="image-multiple-outline" color={color} size={size} />
           ),
         }}
       />

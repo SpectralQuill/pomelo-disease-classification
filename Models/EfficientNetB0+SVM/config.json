@@ -2,7 +2,7 @@
     "IMG_SIZE": 224,
     "BATCH_SIZE": 32,
     "LEARNING_RATE": 1e-4,
-    "EPOCHS": 20,
+    "EPOCHS": 3,
     "FEATURE_EXTRACTION_BATCH_SIZE": 64,
     "VALIDATION_SPLIT": 0.1,
     "TEST_SPLIT": 0.1,

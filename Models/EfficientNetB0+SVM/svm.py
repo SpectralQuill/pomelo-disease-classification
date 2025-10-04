@@ -81,8 +81,23 @@ class CitrusDiseaseClassifier:
                         # Load and preprocess image
                         img = cv2.imread(img_path)
                         if img is not None:
+                            # Debug: Print image shape for first few images
+                            if len(images) < 3:  # Print for first 3 images only
+                                print(f"Image shape: {img.shape}, dtype: {img.dtype}")
+                            
                             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                             img = cv2.resize(img, self.img_size)
+                            
+                            # Ensure image has 3 channels (convert grayscale to RGB)
+                            if len(img.shape) == 2:  # Grayscale image
+                                print(f"Converting grayscale image to RGB: {img_path}")
+                                img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+                            elif img.shape[2] == 4:  # RGBA image
+                                print(f"Converting RGBA image to RGB: {img_path}")
+                                img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+                            elif img.shape[2] == 1:  # Single channel
+                                print(f"Converting single channel image to RGB: {img_path}")
+                                img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
                             
                             # Apply contrast enhancement (CLAHE)
                             if self.config.get('APPLY_CLAHE', True):
@@ -105,7 +120,14 @@ class CitrusDiseaseClassifier:
         # Convert to numpy arrays
         images = np.array(images)
         labels = np.array(labels)
-        
+
+        # Debug: Check final image shapes and channels
+        print(f"Final images array shape: {images.shape}")
+        print(f"Image data type: {images.dtype}")
+        if len(images) > 0:
+            print(f"Sample image shape: {images[0].shape}")
+            print(f"Sample image range: [{images[0].min()}, {images[0].max()}]")
+
         # Encode labels
         label_encoded = self.le.fit_transform(labels)
         
@@ -220,49 +242,42 @@ class CitrusDiseaseClassifier:
             plt.close()
     
     def create_feature_extractor(self, fine_tune=False):
-        """Create EfficientNet-B0 feature extractor using TensorFlow Hub"""
+        """Create EfficientNet-B0 feature extractor using Keras Applications"""
         print("Creating EfficientNet-B0 feature extractor...")
         
         try:
-            import tensorflow_hub as hub
-            
-            # Use TensorFlow Hub for reliable weight loading
-            model_url = "https://tfhub.dev/tensorflow/efficientnet/b0/feature-vector/1"
-            
-            # Create the model from TensorFlow Hub
-            self.feature_extractor = hub.KerasLayer(
-                model_url,
-                input_shape=(self.img_size[0], self.img_size[1], 3),
-                trainable=fine_tune
-            )
-            
-            print("✓ Successfully loaded EfficientNet-B0 from TensorFlow Hub")
-            
-            # Build the model by calling it once
-            dummy_input = tf.keras.Input(shape=(self.img_size[0], self.img_size[1], 3))
-            _ = self.feature_extractor(dummy_input)
-            
-            return self.feature_extractor
-            
-        except ImportError:
-            print("TensorFlow Hub not available. Using Keras application...")
-            # Fallback to Keras application
+            # First try with pre-trained weights
             base_model = EfficientNetB0(
                 weights='imagenet',
                 include_top=False,
                 pooling='avg',
                 input_shape=(self.img_size[0], self.img_size[1], 3)
             )
-            base_model.trainable = fine_tune
-            
-            inputs = tf.keras.Input(shape=(self.img_size[0], self.img_size[1], 3))
-            x = tf.keras.applications.efficientnet.preprocess_input(inputs)
-            features = base_model(x, training=False)
-            
-            self.feature_extractor = tf.keras.Model(inputs, features)
-            return self.feature_extractor
-
+            print("✓ Loaded EfficientNet-B0 with pre-trained ImageNet weights")
+        except ValueError as e:
+            print(f"Warning: Could not load pre-trained weights: {e}")
+            print("Creating EfficientNet-B0 with random initialization...")
+            # Fallback to random weights if shape mismatch occurs
+            base_model = EfficientNetB0(
+                weights=None,  # No pre-trained weights
+                include_top=False,
+                pooling='avg',
+                input_shape=(self.img_size[0], self.img_size[1], 3)
+            )
         
+        base_model.trainable = fine_tune
+        
+        # Create a simple model that outputs features
+        inputs = tf.keras.Input(shape=(self.img_size[0], self.img_size[1], 3))
+        x = preprocess_input(inputs)
+        features = base_model(x, training=False)
+        
+        self.feature_extractor = tf.keras.Model(inputs, features)
+        print("✓ Successfully created EfficientNet-B0 feature extractor")
+        
+        return self.feature_extractor
+     
+            
     def extract_features(self, images, batch_size=32):
         """Extract features using EfficientNet-B0"""
         print("Extracting features...")
@@ -276,16 +291,11 @@ class CitrusDiseaseClassifier:
             batch = images[i:i+batch_size]
             
             # Preprocess the batch for EfficientNet
-            batch = tf.keras.applications.efficientnet.preprocess_input(batch)
+            batch = preprocess_input(batch)
             
-            # For TensorFlow Hub models, use __call__ instead of predict
-            if hasattr(self.feature_extractor, '__call__'):
-                batch_features = self.feature_extractor(batch)
-            else:
-                # Fallback for regular Keras models
-                batch_features = self.feature_extractor.predict(batch, verbose=0)
-            
-            features.append(batch_features.numpy() if hasattr(batch_features, 'numpy') else batch_features)
+            # Extract features using predict
+            batch_features = self.feature_extractor.predict(batch, verbose=0)
+            features.append(batch_features)
         
         features = np.concatenate(features, axis=0)
         print(f"Extracted features shape: {features.shape}")
@@ -293,17 +303,36 @@ class CitrusDiseaseClassifier:
         return features
     
     def fine_tune_efficientnet(self, train_images, train_labels, val_images, val_labels):
-        """Fine-tune EfficientNet-B0 using TensorFlow Hub model"""
+        """Fine-tune EfficientNet-B0 using Keras model"""
         print("Fine-tuning EfficientNet-B0...")
         
-        # Build the fine-tuning model using the feature extractor
-        if self.feature_extractor is None:
-            self.create_feature_extractor(fine_tune=True)  # Set trainable=True
+        try:
+            # First try with pre-trained weights
+            base_model = EfficientNetB0(
+                weights='imagenet',
+                include_top=False,
+                pooling='avg',
+                input_shape=(self.img_size[0], self.img_size[1], 3)
+            )
+            print("✓ Loaded EfficientNet-B0 with pre-trained ImageNet weights")
+        except ValueError as e:
+            print(f"Warning: Could not load pre-trained weights: {e}")
+            print("Creating EfficientNet-B0 with random initialization for fine-tuning...")
+            # Fallback to random weights if shape mismatch occurs
+            base_model = EfficientNetB0(
+                weights=None,  # No pre-trained weights
+                include_top=False,
+                pooling='avg',
+                input_shape=(self.img_size[0], self.img_size[1], 3)
+            )
+        
+        # Make the base model trainable for fine-tuning
+        base_model.trainable = True
         
         # Create the classification model
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(self.img_size[0], self.img_size[1], 3)),
-            self.feature_extractor,
+            base_model,
             tf.keras.layers.Dropout(0.3),
             tf.keras.layers.Dense(256, activation='relu'),
             tf.keras.layers.Dropout(0.2),
@@ -317,29 +346,104 @@ class CitrusDiseaseClassifier:
             metrics=['accuracy']
         )
         
-        # Prepare data
+        # Print model summary
+        print("Fine-tuning model summary:")
+        model.summary()
+        
+        # Prepare data - ensure images are properly preprocessed
+        def preprocess_for_training(images):
+            """Preprocess images for EfficientNet training"""
+            # Convert to float32 and preprocess for EfficientNet
+            images = images.astype('float32')
+            return preprocess_input(images)
+        
+        # Preprocess the images
+        train_images_processed = preprocess_for_training(train_images)
+        val_images_processed = preprocess_for_training(val_images)
+        
+        # Debug: Check image shapes and ranges
+        print(f"Train images shape: {train_images_processed.shape}, dtype: {train_images_processed.dtype}")
+        print(f"Train images range: [{train_images_processed.min():.3f}, {train_images_processed.max():.3f}]")
+        
+        # Create datasets
         train_dataset = tf.data.Dataset.from_tensor_slices(
-            (train_images, train_labels)
+            (train_images_processed, train_labels)
         ).batch(self.config['BATCH_SIZE']).prefetch(tf.data.AUTOTUNE)
         
         val_dataset = tf.data.Dataset.from_tensor_slices(
-            (val_images, val_labels)
+            (val_images_processed, val_labels)
         ).batch(self.config['BATCH_SIZE']).prefetch(tf.data.AUTOTUNE)
         
+        # Callbacks
+        callbacks = [
+            tf.keras.callbacks.EarlyStopping(
+                monitor='val_loss',
+                patience=5,
+                restore_best_weights=True
+            ),
+            tf.keras.callbacks.ReduceLROnPlateau(
+                monitor='val_loss',
+                factor=0.2,
+                patience=3,
+                min_lr=1e-7
+            )
+        ]
+        
         # Train model
+        print("Starting fine-tuning training...")
         history = model.fit(
             train_dataset,
             epochs=self.config['EPOCHS'],
             validation_data=val_dataset,
+            callbacks=callbacks,
             verbose=1
         )
         
-        # Update feature extractor to use the fine-tuned layers
-        # For TensorFlow Hub models, we keep using the same feature extractor
-        # since it was already set to trainable=True
+        # Update feature extractor to use the fine-tuned model
+        # Extract the feature extraction part from the trained model
+        self.feature_extractor = tf.keras.Model(
+            inputs=model.input,
+            outputs=model.layers[0].output  # Output of EfficientNet base
+        )
         
         print("Fine-tuning completed!")
         return history
+        
+    def plot_training_history(self, history, use_fine_tuning=False):
+        """Plot training history for accuracy and loss"""
+        if history is None:
+            print("No training history available to plot.")
+            return
+            
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+        
+        # Plot accuracy
+        ax1.plot(history.history['accuracy'], label='Train Accuracy')
+        ax1.plot(history.history['val_accuracy'], label='Validation Accuracy')
+        ax1.set_title('Model Accuracy')
+        ax1.set_xlabel('Epoch')
+        ax1.set_ylabel('Accuracy')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        
+        # Plot loss
+        ax2.plot(history.history['loss'], label='Train Loss')
+        ax2.plot(history.history['val_loss'], label='Validation Loss')
+        ax2.set_title('Model Loss')
+        ax2.set_xlabel('Epoch')
+        ax2.set_ylabel('Loss')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        
+        # Save the plot
+        plot_name = 'fine_tuning_history.png' if use_fine_tuning else 'training_history.png'
+        plt.savefig(os.path.join(self.config['SAVE_DIR'], 'plots', plot_name), 
+                   dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        print(f"Training history plot saved as {plot_name}")
     
     def train_svm(self, features, labels, use_grid_search=False):
         """Train SVM classifier on extracted features"""
@@ -525,6 +629,7 @@ class CitrusDiseaseClassifier:
         X_train_aug, y_train_aug = self.augment_images(X_train, y_train)
         
         # 5. Fine-tune or use pre-trained EfficientNet
+        history = None
         if use_fine_tuning:
             print("Using fine-tuning approach...")
             history = self.fine_tune_efficientnet(X_train_aug, y_train_aug, X_val, y_val)
@@ -533,6 +638,9 @@ class CitrusDiseaseClassifier:
             train_features = self.extract_features(X_train_aug)
             val_features = self.extract_features(X_val)
             test_features = self.extract_features(X_test)
+            
+            # Plot training history
+            self.plot_training_history(history, use_fine_tuning=True)
         else:
             print("Using pre-trained EfficientNet for feature extraction...")
             # Create feature extractor
@@ -575,7 +683,6 @@ class CitrusDiseaseClassifier:
             'classes': self.classes,
             'image_size': self.img_size,
             'saved_models': {
-                'efficientnet_weights': self.config['EFFICIENTNET_WEIGHTS_PATH'],
                 'svm_model': self.config['SVM_MODEL_PATH'],
                 'features': self.config['FEATURE_CACHE_PATH'] + '_*.npy'
             },
@@ -621,11 +728,8 @@ class CitrusDiseaseClassifier:
         else:
             raise FileNotFoundError(f"SVM model not found at {self.config['SVM_MODEL_PATH']}")
         
-        # Create and load feature extractor
+        # Create feature extractor
         self.create_feature_extractor(fine_tune=False)
-        if os.path.exists(self.config['EFFICIENTNET_WEIGHTS_PATH']):
-            self.feature_extractor.load_weights(self.config['EFFICIENTNET_WEIGHTS_PATH'])
-            print(f"Loaded EfficientNet weights from {self.config['EFFICIENTNET_WEIGHTS_PATH']}")
         
         # Load label encoder classes
         if os.path.exists(os.path.join(self.config['SAVE_DIR'], 'label_encoder_classes.npy')):

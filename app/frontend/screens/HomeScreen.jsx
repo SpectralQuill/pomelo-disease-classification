@@ -7,24 +7,7 @@ import theme from '../theme/theme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
-
-  // return (
-  //   <View style={styles.container}>
-  //     <Text style={styles.title}>Pomelo</Text>
-  //     <Text style={styles.text}>Disease Detection</Text>
-  //     <Button
-  //       mode="contained"
-  //       onPress={() => navigation.navigate('Scanner')}
-  //       style={styles.button}
-  //     >
-  //       Start Scanning
-  //     </Button>
-  //   </View>
-  // );
-
-  //the gallery selection should immediately go to the ResultsScreen after picking an image
-  
+  const navigation = useNavigation();  
   return (
     <Layout>
       <Text style={{color: theme.colors.primary, fontSize: 18}}>Scan Your Pomelo</Text>

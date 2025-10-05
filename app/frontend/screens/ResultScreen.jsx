@@ -15,32 +15,35 @@ const ResultScreen = ({ route }) => {
   //Result screen have a different layout than the rest, so it should only have the header
   return (
     <View style={appStyle.container}>
-      <AppHeader/>
-      <View style={{backgroundColor: "#eeeeeeff", alignItems: "center", flex:1, justifyContent: "center", borderRadius: 10,
+      <AppHeader />
+      <View style={{
+        backgroundColor: "#eeeeeeff", alignItems: "center", flex: 1, justifyContent: "center", borderRadius: 10,
         paddingBottom: 10, paddingTop: 10, paddingRight: 30, paddingLeft: 30,
       }}>
-        
+
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.image} />
         ) : (
           <Text>No image captured</Text>
         )}
         <Text style={styles.title}>Result</Text>
+        <Text>Name of Result</Text>
+        <View style={{ width: '100%', height: 20, backgroundColor: '#40e778ff', justifyContent: 'center', alignItems: 'center', borderRadius: 10 }}><Text>Percentage here</Text></View>
         <Text>Description of scanned pomelo goes here</Text>
 
         {/*button containers for retry and home*/}
-        <View style={{width:'100%', height: 100}}>
+        <View style={{ width: '100%', height: 100, flexDirection: 'row', justifyContent: 'space-around' }}>
           <Button
             mode="text"
             contentStyle={{
               height: 60,
               justifyContent: "center",
             }}
-            onPress={() => setShowSelectModal(!showSelectModal ? true: false)}
+            onPress={() => setShowSelectModal(!showSelectModal ? true : false)}
           >
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <MaterialIcons name="photo-camera" color="#fff" size={26} />
-              <Text style={{ color: "#fff", marginLeft: 8, fontSize: 20}}>Retry</Text>
+              <MaterialIcons name="settings-backup-restore" color="#000000ff" size={26} />
+              <Text style={{ color: "#000000ff", marginLeft: 8, fontSize: 20 }}>Retry</Text>
             </View>
           </Button>
           <Button
@@ -51,8 +54,8 @@ const ResultScreen = ({ route }) => {
             }}
             onPress={() => navigation.navigate("Main")}
           >
-            <MaterialIcons name="home" color="#fff" size={26} />
-            <Text style={{ color: "#fff", marginLeft: 8, fontSize: 20}}>Home</Text>
+            <MaterialIcons name="home" color="#000000ff" size={26} />
+            <Text style={{ color: "#000000ff", marginLeft: 8, fontSize: 20 }}>Home</Text>
           </Button>
         </View>
       </View>
@@ -64,7 +67,7 @@ const ResultScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   title: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
-  image: { width: 250, height: 250, marginVertical: 10 },
+  image: { width: 300, height: 300, marginVertical: 10 },
 });
 
 export default ResultScreen;

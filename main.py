@@ -1,12 +1,18 @@
+import os
+from dotenv import load_dotenv
 from image_status_updater.image_status_updater_v2_2 import main as update_image_statuses
 from image_trimmer.image_trimmer_v1_0 import main as trim_images
-from pomelo_dataset_organizer.pomelo_dataset_organizer_v2_2 import run_pomelo_dataset_organizer
+from pomelo_dataset_organizer.pomelo_dataset_organizer_v2_3 import run_pomelo_dataset_organizer
 from pomelo_extractor.pomelo_extractor_v2_15 import run_pomelo_extractor
 
+load_dotenv()
+
 def load_pomelo_dataset_organizer():
-    google_drive_folder = os.environ['DATASET_GOOGLE_DRIVE_ID']
-    local_images_folder = r"images\processed"
-    labeling_csv = r"tracker\tracker.csv"
+    google_drive_folder = os.environ['DATASET_GOOGLE_DRIVE_ID_SAMPLE']
+    # local_images_folder = r"images\processed"
+    # labeling_csv = r"tracker\tracker.csv"
+    local_images_folder = r"images\sample"
+    labeling_csv = r"backup_files\sample.csv"
 
     run_pomelo_dataset_organizer(google_drive_folder, local_images_folder, labeling_csv)
 

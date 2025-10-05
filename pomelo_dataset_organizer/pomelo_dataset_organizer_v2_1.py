@@ -2,10 +2,13 @@ import argparse
 import re
 import logging
 import pandas as pd
+from dotenv import load_dotenv
 from typing import Dict, List, Tuple, Set, Optional
 from pathlib import Path
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+
+load_dotenv()
 
 class PomeloDatasetOrganizer:
     """

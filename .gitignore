@@ -69,3 +69,4 @@ credentials.json
 
 # dev
 /backup_files
+/replacements.txt

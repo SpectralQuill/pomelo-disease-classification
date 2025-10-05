@@ -1,5 +1,4 @@
 import argparse
-import re
 import logging
 import os
 import pandas as pd
@@ -318,7 +317,7 @@ class PomeloDatasetOrganizer:
     
     def __init__(
         self,
-        google_drive_images_folder: str = os.environ['DATASET_GOOGLE_DRIVE_ID'],
+        google_drive_id: str = os.environ['DATASET_GOOGLE_DRIVE_ID'],
         local_images_folder: str = r"images\processed",
         labeling_csv: str = r"tracker\tracker.csv",
         ignore_subfolders: Set[str] = None
@@ -332,16 +331,16 @@ class PomeloDatasetOrganizer:
         self._setup_logging()
         logging.info("Initializing PomeloDatasetOrganizer...")
         
-        self.google_drive_images_folder = google_drive_images_folder
+        self.google_drive_images_folder = google_drive_id
         self.local_images_folder = Path(local_images_folder)
         self.labeling_csv = Path(labeling_csv)
         self.ignore_subfolders = {folder.lower() for folder in ignore_subfolders}
         
         self._check_csv_permissions()
-        self.drive_folder_id = self._extract_drive_folder_id(google_drive_images_folder)
+        self.drive_folder_id = google_drive_id
         self.drive_service = self._initialize_google_drive()
         
-        logging.info(f"Using Google Drive folder: {google_drive_images_folder}")
+        logging.info(f"Using Google Drive folder: {google_drive_id}")
         logging.info(f"Using local images folder: {local_images_folder}")
         logging.info(f"Using labeling CSV: {labeling_csv}")
         
@@ -606,14 +605,6 @@ class PomeloDatasetOrganizer:
         except Exception as e:
             raise Exception(f"Unable to access labeling CSV: {str(e)}")
     
-    def _extract_drive_folder_id(self, drive_url: str) -> str:
-        """Extract folder ID from Google Drive URL."""
-        match = re.search(r'/folders/([a-zA-Z0-9_-]+)', drive_url)
-        if match:
-            return match.group(1)
-        else:
-            raise ValueError(f"Could not extract folder ID from URL: {drive_url}")
-    
     def _initialize_google_drive(self):
         """Initialize and authenticate Google Drive service."""
         try:
@@ -736,7 +727,7 @@ class PomeloDatasetOrganizer:
         logging.info(f"Deleted {local_deleted} empty local subfolders and {drive_deleted} empty drive subfolders")
 
 def run_pomelo_dataset_organizer(
-    google_drive_folder: str = None,
+    google_drive_id: str = None,
     local_images_folder: str = None,
     labeling_csv: str = None,
     ignore_subfolders: Set[str] = None
@@ -751,8 +742,8 @@ def run_pomelo_dataset_organizer(
         ignore_subfolders: Optional set of subfolder names to ignore
     """
     kwargs = {}
-    if google_drive_folder:
-        kwargs['google_drive_images_folder'] = google_drive_folder
+    if google_drive_id:
+        kwargs['google_drive_id'] = google_drive_id
     if local_images_folder:
         kwargs['local_images_folder'] = local_images_folder
     if labeling_csv:
@@ -769,7 +760,7 @@ def main():
     )
     
     parser.add_argument(
-        '--google-drive-images-folder',
+        '--google-drive-id',
         type=str,
         default=os.environ['DATASET_GOOGLE_DRIVE_ID'],
         help='Google Drive folder URL containing pomelo class subfolders'
@@ -800,7 +791,7 @@ def main():
     args = parser.parse_args()
     
     run_pomelo_dataset_organizer(
-        google_drive_folder=args.google_drive_images_folder,
+        google_drive_folder=args.google_drive_id,
         local_images_folder=args.local_images_folder,
         labeling_csv=args.labeling_csv,
         ignore_subfolders=set(args.ignore_subfolders)

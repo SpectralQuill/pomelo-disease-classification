@@ -34,8 +34,6 @@ class PomeloDatasetOrganizer:
         def __init__(self, name: str, organizer: 'PomeloDatasetOrganizer'):
             self.name = name
             self.organizer = organizer
-            self.drive_encodings = set()
-            self.local_encodings = set()
             self.local_files = []
             self.drive_files = []
             self.is_moved_local = False
@@ -43,13 +41,20 @@ class PomeloDatasetOrganizer:
         
         def add_local_encoding(self, encoding: Tuple[bool], file_path: Path):
             """Add a local encoding to this image."""
-            self.local_encodings.add(encoding)
-            self.local_files.append({'path': file_path, 'encoding': encoding})
+            self.local_files.append({
+                'path': file_path, 
+                'encoding': encoding, 
+                'is_main': False
+            })
         
         def add_drive_encoding(self, encoding: Tuple[bool], file_item: Any, parent_id: str):
             """Add a drive encoding to this image."""
-            self.drive_encodings.add(encoding)
-            self.drive_files.append({'file_item': file_item, 'encoding': encoding, 'parent_id': parent_id})
+            self.drive_files.append({
+                'file_item': file_item, 
+                'encoding': encoding, 
+                'parent_id': parent_id,
+                'is_main': False
+            })
         
         def get_resolved_encoding(self) -> Tuple[bool]:
             """Get resolved encoding by merging drive and local encodings and resolving conflicts."""
@@ -58,7 +63,8 @@ class PomeloDatasetOrganizer:
             merged_encoding = [False] * encoding_length
             
             # Merge all encodings from drive and local
-            for encoding in self.drive_encodings.union(self.local_encodings):
+            for file_info in self.local_files + self.drive_files:
+                encoding = file_info['encoding']
                 for i, value in enumerate(encoding):
                     if value and i < encoding_length:
                         merged_encoding[i] = True
@@ -95,6 +101,34 @@ class PomeloDatasetOrganizer:
             
             return tuple(merged_encoding)
         
+        def mark_main_files(self):
+            """Mark main files based on resolved encoding match."""
+            resolved_encoding = self.get_resolved_encoding()
+            
+            # Mark main files for local files
+            main_local_found = False
+            for file_info in self.local_files:
+                if file_info['encoding'] == resolved_encoding:
+                    file_info['is_main'] = True
+                    main_local_found = True
+                    break
+            
+            # If no exact match found, mark first local file as main
+            if not main_local_found and self.local_files:
+                self.local_files[0]['is_main'] = True
+            
+            # Mark main files for drive files
+            main_drive_found = False
+            for file_info in self.drive_files:
+                if file_info['encoding'] == resolved_encoding:
+                    file_info['is_main'] = True
+                    main_drive_found = True
+                    break
+            
+            # If no exact match found, mark first drive file as main
+            if not main_drive_found and self.drive_files:
+                self.drive_files[0]['is_main'] = True
+        
         def get_positive_classes(self) -> List[str]:
             """Get the list of positive classes from resolved encoding."""
             resolved_encoding = self.get_resolved_encoding()
@@ -109,20 +143,22 @@ class PomeloDatasetOrganizer:
             return positive_classes
         
         def get_original_drive_subfolder(self):
-            """Get original drive subfolder using first element of drive_encodings."""
-            if not self.drive_encodings:
+            """Get original drive subfolder using first element of drive_files."""
+            if not self.drive_files:
                 return None
             
-            first_encoding = next(iter(self.drive_encodings))
+            # Use the encoding from the first drive file
+            first_encoding = self.drive_files[0]['encoding']
             encoding_key = self.organizer._encoding_to_key(first_encoding)
             return self.organizer.pomelo_class_subfolders.get(encoding_key)
         
         def get_original_local_subfolder(self):
-            """Get original local subfolder using first element of local_encodings."""
-            if not self.local_encodings:
+            """Get original local subfolder using first element of local_files."""
+            if not self.local_files:
                 return None
             
-            first_encoding = next(iter(self.local_encodings))
+            # Use the encoding from the first local file
+            first_encoding = self.local_files[0]['encoding']
             encoding_key = self.organizer._encoding_to_key(first_encoding)
             return self.organizer.pomelo_class_subfolders.get(encoding_key)
         
@@ -141,6 +177,7 @@ class PomeloDatasetOrganizer:
         
         def move_to_new_subfolder(self) -> bool:
             """Move image to new subfolder based on resolved encoding."""
+            
             new_subfolder = self.get_new_subfolder()
             original_drive_subfolder = self.get_original_drive_subfolder()
             original_local_subfolder = self.get_original_local_subfolder()
@@ -148,85 +185,125 @@ class PomeloDatasetOrganizer:
             success_local = True
             success_drive = True
             
-            # Move local files
-            if self.local_files and (not original_local_subfolder or original_local_subfolder != new_subfolder):
-                success_local = self._move_local_to_subfolder(new_subfolder)
+            # Move main local file
+            main_local_files = [f for f in self.local_files if f['is_main']]
+            if main_local_files and (not original_local_subfolder or original_local_subfolder != new_subfolder):
+                success_local = self._move_local_to_subfolder(new_subfolder, main_local_files[0])
                 if success_local and original_local_subfolder:
-                    original_local_subfolder.local_dir_count -= len(self.local_files)
+                    original_local_subfolder.local_dir_count -= len(main_local_files)
                     self.is_moved_local = True
-                new_subfolder.local_dir_count += len(self.local_files) if success_local else 0
+                new_subfolder.local_dir_count += len(main_local_files) if success_local else 0
             
-            # Move drive files
-            if self.drive_files and (not original_drive_subfolder or original_drive_subfolder != new_subfolder):
-                success_drive = self._move_drive_to_subfolder(new_subfolder)
+            # Move main drive file
+            main_drive_files = [f for f in self.drive_files if f['is_main']]
+            if main_drive_files and (not original_drive_subfolder or original_drive_subfolder != new_subfolder):
+                success_drive = self._move_drive_to_subfolder(new_subfolder, main_drive_files[0])
                 if success_drive and original_drive_subfolder:
-                    original_drive_subfolder.drive_dir_count -= len(self.drive_files)
+                    original_drive_subfolder.drive_dir_count -= len(main_drive_files)
                     self.is_moved_drive = True
-                new_subfolder.drive_dir_count += len(self.drive_files) if success_drive else 0
+                new_subfolder.drive_dir_count += len(main_drive_files) if success_drive else 0
             
             return success_local and success_drive
         
-        def _move_local_to_subfolder(self, target_subfolder) -> bool:
-            """Move local files to target subfolder."""
+        def _move_local_to_subfolder(self, target_subfolder, file_info: dict) -> bool:
+            """Move local file to target subfolder."""
             target_folder_path = self.organizer._get_or_create_local_folder(target_subfolder.name)
             
-            success = True
-            for file_info in self.local_files:
-                source_path = file_info['path']
-                target_path = target_folder_path / source_path.name
-                
-                try:
-                    if source_path != target_path:
-                        shutil.move(str(source_path), str(target_path))
-                        file_info['path'] = target_path
-                        logging.info(f"Moved local image {self.name} to {target_subfolder.name}")
-                except Exception as e:
-                    logging.error(f"Failed to move local image {self.name}: {str(e)}")
-                    success = False
+            source_path = file_info['path']
+            target_path = target_folder_path / source_path.name
             
-            return success
+            try:
+                if source_path != target_path:
+                    shutil.move(str(source_path), str(target_path))
+                    file_info['path'] = target_path
+                    logging.info(f"Moved local image {self.name} to {target_subfolder.name}")
+                    return True
+            except Exception as e:
+                logging.error(f"Failed to move local image {self.name}: {str(e)}")
+                return False
+            
+            return True
         
-        def _move_drive_to_subfolder(self, target_subfolder) -> bool:
-            """Move drive files to target subfolder."""
+        def _move_drive_to_subfolder(self, target_subfolder, file_info: dict) -> bool:
+            """Move drive file to target subfolder."""
             target_folder_id = self.organizer._get_or_create_drive_folder(target_subfolder.name)
             if not target_folder_id:
                 return False
             
-            success = True
-            for file_info in self.drive_files:
-                file_item = file_info['file_item']
-                current_parent_id = file_info['parent_id']
-                
-                if current_parent_id != target_folder_id:
-                    try:
-                        file_item['parents'] = [{'id': target_folder_id}]
-                        file_item.Upload()
-                        file_info['parent_id'] = target_folder_id
-                        logging.info(f"Moved drive image {self.name} to {target_subfolder.name}")
-                    except Exception as e:
-                        logging.error(f"Failed to move drive image {self.name}: {str(e)}")
-                        success = False
+            file_item = file_info['file_item']
+            current_parent_id = file_info['parent_id']
             
-            return success
-        
+            if current_parent_id != target_folder_id:
+                try:
+                    file_item['parents'] = [{'id': target_folder_id}]
+                    file_item.Upload()
+                    file_info['parent_id'] = target_folder_id
+                    logging.info(f"Moved drive image {self.name} to {target_subfolder.name}")
+                    return True
+                except Exception as e:
+                    logging.error(f"Failed to move drive image {self.name}: {str(e)}")
+                    return False
+            
+            return True
+
+        def _get_duplicate_image_name(self, file_info: dict, index: int) -> str:
+            """Generate duplicate image name with optimized zero padding.
+            
+            Args:
+                file_info: The file info dictionary containing either 'path' (local) or 'file_item' (drive)
+                index: The duplicate index (2-based)
+                
+            Returns:
+                Formatted duplicate filename
+            """
+            # Calculate the number of digits needed based on total files
+            total_local_duplicates = len([f for f in self.local_files if not f['is_main']])
+            total_drive_duplicates = len([f for f in self.drive_files if not f['is_main']])
+            total_duplicates = max(total_local_duplicates, total_drive_duplicates)
+            total_digits = len(str(total_duplicates + 1))  # +1 because we start from index 2
+            
+            # Format the index with appropriate zero padding
+            if total_digits == 1:
+                # No padding needed for 2-9 files
+                formatted_index = str(index)
+            else:
+                # Pad with zeros to match total digits
+                formatted_index = str(index).zfill(total_digits)
+            
+            # Extract name and extension based on file type
+            if 'path' in file_info:  # Local file
+                source_path = file_info['path']
+                base_name = source_path.stem  # Get name without extension
+                extension = source_path.suffix
+            else:  # Drive file
+                file_item = file_info['file_item']
+                file_title = file_item['title']
+                base_name = Path(file_title).stem
+                extension = Path(file_title).suffix
+            
+            return f"{base_name} ({formatted_index}){extension}"
+
         def move_duplicates(self):
             """Move duplicate images to duplicates folder."""
             # Move local duplicates
-            if len(self.local_files) > 1:
-                self._move_local_duplicates()
+            duplicate_local_files = [f for f in self.local_files if not f['is_main']]
+            if duplicate_local_files:
+                self._move_local_duplicates(duplicate_local_files)
             
             # Move drive duplicates
-            if len(self.drive_files) > 1:
-                self._move_drive_duplicates()
-        
-        def _move_local_duplicates(self):
+            duplicate_drive_files = [f for f in self.drive_files if not f['is_main']]
+            if duplicate_drive_files:
+                self._move_drive_duplicates(duplicate_drive_files)
+
+        def _move_local_duplicates(self, duplicate_files: List[dict]):
             """Move duplicate local images to duplicates folder."""
-            duplicates_folder = self.organizer._get_or_create_local_folder("duplicates")
+            duplicates_folder = self.organizer.local_images_folder / "duplicates"
+            duplicates_folder.mkdir(parents=True, exist_ok=True)
             
-            # Keep the first file, move the rest to duplicates
-            for i, file_info in enumerate(self.local_files[1:], 1):
+            # Move duplicates to duplicates folder
+            for i, file_info in enumerate(duplicate_files, start=2):  # Start from index 2
                 source_path = file_info['path']
-                new_filename = f"{self.name}_dup{i:02d}{source_path.suffix}"
+                new_filename = self._get_duplicate_image_name(file_info, i)
                 target_path = duplicates_folder / new_filename
                 
                 try:
@@ -235,18 +312,18 @@ class PomeloDatasetOrganizer:
                     logging.info(f"Moved duplicate local image: {self.name} -> duplicates/{new_filename}")
                 except Exception as e:
                     logging.error(f"Failed to move duplicate local image {self.name}: {str(e)}")
-        
-        def _move_drive_duplicates(self):
+
+        def _move_drive_duplicates(self, duplicate_files: List[dict]):
             """Move duplicate drive images to duplicates folder."""
             duplicates_folder_id = self.organizer._get_or_create_drive_folder("duplicates")
             if not duplicates_folder_id:
                 logging.error("Failed to create duplicates folder in Google Drive")
                 return
             
-            # Keep the first file, move the rest to duplicates
-            for i, file_info in enumerate(self.drive_files[1:], 1):
+            # Move duplicates to duplicates folder
+            for i, file_info in enumerate(duplicate_files, start=2):  # Start from index 2
                 file_item = file_info['file_item']
-                new_filename = f"{self.name}_dup{i:02d}{Path(file_item['title']).suffix}"
+                new_filename = self._get_duplicate_image_name(file_info, i)
                 
                 try:
                     file_item['title'] = new_filename
@@ -255,10 +332,10 @@ class PomeloDatasetOrganizer:
                     logging.info(f"Moved duplicate drive image: {self.name} -> duplicates/{new_filename}")
                 except Exception as e:
                     logging.error(f"Failed to move duplicate drive image {self.name}: {str(e)}")
-        
+
         def __str__(self):
-            return f"PomeloImage(name='{self.name}', drive_encodings={len(self.drive_encodings)}, local_encodings={len(self.local_encodings)})"
-    
+            return f"PomeloImage(name='{self.name}', local_files={len(self.local_files)}, drive_files={len(self.drive_files)})"
+        
     class PomeloClassSubfolder:
         """Represents a pomelo class subfolder with its encoding and file counts."""
         
@@ -395,10 +472,10 @@ class PomeloDatasetOrganizer:
         )
         
         # Load drive subfolders
-        drive_subfolders = self._get_direct_subfolders_drive()
+        drive_subfolders = self._get_subfolders_drive()
         
         # Load local subfolders
-        local_subfolders = self._get_direct_subfolders_local()
+        local_subfolders = self._get_subfolders_local()
         
         # Create subfolder instances for all found subfolders
         all_subfolders = set(drive_subfolders.keys()).union(set(local_subfolders.keys()))
@@ -532,7 +609,7 @@ class PomeloDatasetOrganizer:
         """Convert encoding tuple to string key."""
         return "".join("1" if val else "0" for val in encoding)
     
-    def _get_direct_subfolders_drive(self) -> Dict[str, str]:
+    def _get_subfolders_drive(self) -> Dict[str, str]:
         """Get direct subfolder names and IDs from Google Drive folder."""
         folder_dict = {}
         try:
@@ -548,7 +625,7 @@ class PomeloDatasetOrganizer:
             logging.error(f"Error getting Drive subfolders: {str(e)}")
         return folder_dict
     
-    def _get_direct_subfolders_local(self) -> Dict[str, Path]:
+    def _get_subfolders_local(self) -> Dict[str, Path]:
         """Get direct subfolder names and paths from local folder."""
         folder_dict = {}
         if self.local_images_folder.exists():
@@ -659,6 +736,9 @@ class PomeloDatasetOrganizer:
                     continue
                     
                 image = self.pomelo_images[image_name_str]
+
+                # Mark main files
+                image.mark_main_files()
                 
                 # Move to new subfolder
                 if image.move_to_new_subfolder():
@@ -667,17 +747,18 @@ class PomeloDatasetOrganizer:
                     if image.is_moved_drive:
                         moved_drive_count += 1
                 
-                # Check for conflicts
-                positive_classes = image.get_positive_classes()
-                if len(positive_classes) > 1:
-                    conflicted_count += 1
-                
                 # Move duplicates
                 image.move_duplicates()
-                if len(image.local_files) > 1:
-                    duplicates_local_count += len(image.local_files) - 1
-                if len(image.drive_files) > 1:
-                    duplicates_drive_count += len(image.drive_files) - 1
+                duplicate_local_files = [f for f in image.local_files if not f['is_main']]
+                duplicate_drive_files = [f for f in image.drive_files if not f['is_main']]
+                duplicates_local_count += len(duplicate_local_files)
+                duplicates_drive_count += len(duplicate_drive_files)
+                
+                # Check for conflicts using resolved encoding directly
+                resolved_encoding = image.get_resolved_encoding()
+                true_count = sum(1 for val in resolved_encoding if val)
+                if true_count > 1:
+                    conflicted_count += 1
             
             # Delete empty subfolders
             self._delete_empty_subfolders()
@@ -694,37 +775,37 @@ class PomeloDatasetOrganizer:
             raise
 
     def _delete_empty_subfolders(self):
-        """Delete empty subfolders in both local and Google Drive."""
-        logging.info("Deleting empty subfolders...")
-        
-        local_deleted = 0
-        drive_deleted = 0
-        
-        for encoding_key, subfolder in list(self.pomelo_class_subfolders.items()):
-            # Skip root folder and newly created folders
-            if subfolder.encoding[0] or subfolder.is_new:
-                continue
-                
-            if subfolder.delete("local"):
-                # Actually delete the local folder
-                local_folder_path = self.local_images_folder / subfolder.name
-                if local_folder_path.exists() and local_folder_path.is_dir():
-                    try:
-                        local_folder_path.rmdir()
-                        local_deleted += 1
-                    except OSError as e:
-                        logging.warning(f"Could not delete local folder {subfolder.name}: {e}")
+            """Delete empty subfolders in both local and Google Drive."""
+            logging.info("Deleting empty subfolders...")
             
-            if subfolder.drive_id and subfolder.delete("drive"):
-                # Actually delete the drive folder
-                try:
-                    drive_folder = self.drive_service.CreateFile({'id': subfolder.drive_id})
-                    drive_folder.Delete()
-                    drive_deleted += 1
-                except Exception as e:
-                    logging.warning(f"Could not delete drive folder {subfolder.name}: {e}")
-        
-        logging.info(f"Deleted {local_deleted} empty local subfolders and {drive_deleted} empty drive subfolders")
+            local_deleted = 0
+            drive_deleted = 0
+            
+            for encoding_key, subfolder in list(self.pomelo_class_subfolders.items()):
+                # Skip root folder and newly created folders
+                if subfolder.encoding[0] or subfolder.is_new:
+                    continue
+                    
+                if subfolder.delete("local"):
+                    # Actually delete the local folder
+                    local_folder_path = self.local_images_folder / subfolder.name
+                    if local_folder_path.exists() and local_folder_path.is_dir():
+                        try:
+                            local_folder_path.rmdir()
+                            local_deleted += 1
+                        except OSError as e:
+                            logging.warning(f"Could not delete local folder {subfolder.name}: {e}")
+                
+                if subfolder.drive_id and subfolder.delete("drive"):
+                    # Actually delete the drive folder
+                    try:
+                        drive_folder = self.drive_service.CreateFile({'id': subfolder.drive_id})
+                        drive_folder.Delete()
+                        drive_deleted += 1
+                    except Exception as e:
+                        logging.warning(f"Could not delete drive folder {subfolder.name}: {e}")
+            
+            logging.info(f"Deleted {local_deleted} empty local subfolders and {drive_deleted} empty drive subfolders")
 
 def run_pomelo_dataset_organizer(
     google_drive_id: str = None,

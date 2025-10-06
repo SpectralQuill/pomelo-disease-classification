@@ -1,3 +1,4 @@
+import argparse
 import os
 from dotenv import load_dotenv
 from image_status_updater.image_status_updater_v2_2 import main as update_image_statuses
@@ -41,20 +42,26 @@ choices = {
     "Load image class updater": load_image_class_updater,
     "Load pomelo dataset organizer": load_pomelo_dataset_organizer
 }
-DEFAULT_CHOICE_NUMBER = None
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Enter number of script to run or leave blank to choose from menu"
+    )
+    parser.add_argument(
+        "--choice", type=int, default=None, help="Number of script to run"
+    )
+    args = parser.parse_args()
     choice_keys = list(choices.keys())
     choice_range = range(len(choice_keys))
     print()
     for index, choice in enumerate(choices):
         print(f"({index+1}) {choice}")
     print()
-    if DEFAULT_CHOICE_NUMBER == None:
+    if args.choice is None:
         choice_index = int(input("Enter number: ")) - 1
     else:
-        print(f"(Default) Running choice #{DEFAULT_CHOICE_NUMBER}")
-        choice_index = DEFAULT_CHOICE_NUMBER - 1
+        print(f"(Default) Running choice #{args.choice}")
+        choice_index = args.choice - 1
     print()
     if choice_index not in choice_range:
         print("\033[31mInvalid choice\033[0m")

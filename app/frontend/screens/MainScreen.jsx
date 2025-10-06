@@ -31,7 +31,7 @@ export default function MainScreen() {
     >
       {[
         { name: "Home", icon: "home", component: HomeScreen },
-        { name: "Gallery", icon: "photo-library", component: PreviousResultsScreen },
+        { name: "Catalogue", icon: "photo-library", component: PreviousResultsScreen },
         { name: "Profile", icon: "person", component: ProfileScreen },
       ].map((tab) => (
         <Tab.Screen
@@ -64,7 +64,7 @@ export default function MainScreen() {
                 >
                   <MaterialIcons
                     name={tab.icon}
-                    size={focused ? 36 : 28}
+                    size={focused ? 42 : 36}
                     color={focused ? "#fff" : theme.colors.primary}
                   />
                 </View>

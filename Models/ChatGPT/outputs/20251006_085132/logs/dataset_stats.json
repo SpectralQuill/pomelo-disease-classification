@@ -1,0 +1,13 @@
+{
+  "total_images": 724,
+  "train": 579,
+  "val": 72,
+  "test": 73,
+  "classes": [
+    "Anthracnose",
+    "Borer",
+    "Canker",
+    "Healthy",
+    "Mite"
+  ]
+}

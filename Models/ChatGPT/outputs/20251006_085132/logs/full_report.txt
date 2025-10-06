@@ -1,0 +1,21 @@
+Dataset stats:
+{
+  "total_images": 724,
+  "train": 579,
+  "val": 72,
+  "test": 73,
+  "classes": [
+    "Anthracnose",
+    "Borer",
+    "Canker",
+    "Healthy",
+    "Mite"
+  ]
+}
+Evaluation summary:
+{
+  "accuracy": 0.7397260273972602,
+  "precision": 0.7253600280997541,
+  "recall": 0.7397260273972602,
+  "f1": 0.7226435933124088
+}

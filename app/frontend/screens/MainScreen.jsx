@@ -4,11 +4,11 @@ import theme from "../theme/theme";
 import HomeScreen from "./HomeScreen";
 import PreviousResultsScreen from "./PreviousResultsScreen";
 import ProfileScreen from "./ProfileScreen";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { SimpleLineIcons, FontAwesome, MaterialIcons } from '@expo/vector-icons'
 
 const Tab = createBottomTabNavigator();
 export default function MainScreen() {
-    return (
+  return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
@@ -18,13 +18,13 @@ export default function MainScreen() {
           backgroundColor: theme.colors.primary,
           borderTopWidth: 0,
           elevation: 5,
-          height: 100,
+          height: 120,
         },
         tabBarIcon: ({ color, size, focused }) => (
           <MaterialIcons
-            name={focused ? "home" : "home"} 
+            name={focused ? "home" : "home"}
             color={color}
-            size={size + 20}
+            size={size + 40}
           />
         ),
       }}
@@ -34,16 +34,16 @@ export default function MainScreen() {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="home" color={color} size={size} />
+            <MaterialIcons name="home" color={color} size={30} />
           ),
         }}
       />
       <Tab.Screen
-        name="PreviousResults"
+        name="Gallery"
         component={PreviousResultsScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="person" color={color} size={size} />
+            <MaterialIcons name="photo-library" color={color} size={size} />
           ),
         }}
       />
@@ -52,7 +52,7 @@ export default function MainScreen() {
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="image-multiple-outline" color={color} size={size} />
+            <MaterialIcons name="person" color={color} size={size} />
           ),
         }}
       />

@@ -1,0 +1,43 @@
+# config.yaml
+training:
+  epochs: 5
+  batch_size: 32
+  learning_rate: 0.001
+  optimizer: "adam"
+  early_stopping_patience: 10
+  reduce_lr_patience: 5
+
+model:
+  image_size: 224
+  num_classes: 5
+  feature_dim: 1280
+  dropout_rate: 0.3
+  l2_regularization: 0.0001
+
+data:
+  dataset_path: "C:/Users/rmanr/Documents/GitHub/pomelo-disease-classification/Dataset/"
+  output_path: "outputs"
+  train_ratio: 0.8
+  val_ratio: 0.1
+  test_ratio: 0.1
+
+augmentation:
+  rotation_range: 30
+  width_shift_range: 0.2
+  height_shift_range: 0.2
+  horizontal_flip: True
+  brightness_range: [0.8, 1.2]
+  contrast_range: [0.8, 1.2]
+  zoom_range: 0.2
+
+svm:
+  C: 1.0
+  kernel: "rbf"
+  gamma: "scale"
+
+classes:
+  - "anthracnose"
+  - "borer" 
+  - "canker"
+  - "mite"
+  - "healthy"

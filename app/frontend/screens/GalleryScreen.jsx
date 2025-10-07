@@ -27,9 +27,9 @@ const GalleryScreen = () => {
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
-      navigation.navigate("Result", { imageUri: uri });
+      navigation.navigate("Result", { photoUri: uri });
     } else {
-      navigation.goBack(); 
+      navigation.goBack();
     }
   };
 

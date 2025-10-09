@@ -36,6 +36,9 @@ web-build/
 # Metro
 .metro-health-check*
 
+# backend
+.idea
+
 # debug
 npm-debug.*
 yarn-debug.*

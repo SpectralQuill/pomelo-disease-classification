@@ -716,6 +716,63 @@ class PomeloDatasetOrganizer:
             handlers=[logging.StreamHandler()]
         )
     
+    def _get_drive_subfolder_name(self, folder_id: str) -> str:
+        """Get drive subfolder name by ID."""
+        try:
+            folder = self.drive_service.CreateFile({'id': folder_id})
+            folder.FetchMetadata()
+            return folder['title']
+        except Exception:
+            return "__root__"
+
+    def _delete_empty_subfolders(self):
+        """Delete empty subfolders in both local and Google Drive."""
+        logging.info("Deleting empty subfolders...")
+        
+        local_deleted = 0
+        drive_deleted = 0
+        
+        for classes_key, subfolder in list(self.pomelo_class_subfolders.items()):
+            # Skip root folder, duplicates folder, and newly created folders
+            if "_root_" in subfolder.classes_set or "duplicates" in subfolder.classes_set or subfolder.is_new:
+                continue
+                
+            # Delete local subfolder if empty (this should work for all accounts)
+            if subfolder.local_dir_count == 0:
+                local_folder_path = self.local_images_folder / subfolder.name
+                if local_folder_path.exists() and local_folder_path.is_dir():
+                    try:
+                        # Check if folder is actually empty before deleting
+                        if not any(local_folder_path.iterdir()):
+                            local_folder_path.rmdir()
+                            local_deleted += 1
+                            logging.info(f"Deleted empty local subfolder: {subfolder.name}")
+                        else:
+                            logging.warning(f"Local folder {subfolder.name} is not empty, skipping deletion")
+                    except Exception as e:
+                        logging.warning(f"Could not delete local folder {subfolder.name}: {e}")
+            
+            # Only attempt Drive deletion if we're confident we have owner permissions
+            if subfolder.drive_id and subfolder.drive_dir_count == 0:
+                try:
+                    # Check if we have delete permissions by testing metadata access first
+                    drive_folder = self.drive_service.CreateFile({'id': subfolder.drive_id})
+                    drive_folder.FetchMetadata()
+                    
+                    # Only attempt deletion if we're the owner or have explicit delete rights
+                    if ('owners' in drive_folder and 
+                        any(owner.get('permissionId') == 'me' for owner in drive_folder['owners'])):
+                        drive_folder.Delete()
+                        drive_deleted += 1
+                        logging.info(f"Deleted empty drive subfolder: {subfolder.name}")
+                    else:
+                        logging.info(f"Skipping drive folder deletion (no owner permissions): {subfolder.name}")
+                        
+                except Exception as e:
+                    logging.warning(f"Could not delete drive folder {subfolder.name}: {e}")
+        
+        logging.info(f"Deleted {local_deleted} empty local subfolders and {drive_deleted} empty drive subfolders")
+
     def organize_dataset(self):
         """Main method to organize the entire dataset."""
         logging.info("Starting pomelo dataset organization...")
@@ -799,48 +856,6 @@ class PomeloDatasetOrganizer:
         except Exception as e:
             logging.error(f"Error during dataset organization: {str(e)}")
             raise
-
-    def _get_drive_subfolder_name(self, folder_id: str) -> str:
-        """Get drive subfolder name by ID."""
-        try:
-            folder = self.drive_service.CreateFile({'id': folder_id})
-            folder.FetchMetadata()
-            return folder['title']
-        except Exception:
-            return "__root__"
-
-    def _delete_empty_subfolders(self):
-            """Delete empty subfolders in both local and Google Drive."""
-            logging.info("Deleting empty subfolders...")
-            
-            local_deleted = 0
-            drive_deleted = 0
-            
-            for classes_key, subfolder in list(self.pomelo_class_subfolders.items()):
-                # Skip root folder, duplicates folder, and newly created folders
-                if "__root__" in subfolder.classes_set or subfolder.is_new:
-                    continue
-                    
-                if subfolder.delete("local"):
-                    # Actually delete the local folder
-                    local_folder_path = self.local_images_folder / subfolder.name
-                    if local_folder_path.exists() and local_folder_path.is_dir():
-                        try:
-                            local_folder_path.rmdir()
-                            local_deleted += 1
-                        except OSError as e:
-                            logging.warning(f"Could not delete local folder {subfolder.name}: {e}")
-                
-                if subfolder.drive_id and subfolder.delete("drive"):
-                    # Actually delete the drive folder
-                    try:
-                        drive_folder = self.drive_service.CreateFile({'id': subfolder.drive_id})
-                        drive_folder.Delete()
-                        drive_deleted += 1
-                    except Exception as e:
-                        logging.warning(f"Could not delete drive folder {subfolder.name}: {e}")
-            
-            logging.info(f"Deleted {local_deleted} empty local subfolders and {drive_deleted} empty drive subfolders")
 
 def run_pomelo_dataset_organizer(
     google_drive_id: str = None,

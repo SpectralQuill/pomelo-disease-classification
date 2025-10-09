@@ -9,24 +9,11 @@ from pomelo_extractor.pomelo_extractor_v2_15 import run_pomelo_extractor
 load_dotenv()
 
 def load_pomelo_dataset_organizer():
-<<<<<<< HEAD
     google_drive_folder = os.environ['DATASET_GOOGLE_DRIVE_ID']
-    local_images_folder = r"Dataset"
+    local_images_folder = r"images\processed"
     labeling_csv = r"tracker\tracker.csv"
-<<<<<<< HEAD
     override_csv = r"tracker\override.csv"
     ignore_subfolders = None
-=======
-=======
-    # google_drive_folder = os.environ['DATASET_GOOGLE_DRIVE_ID']
-    # local_images_folder = r"images\processed"
-    # labeling_csv = r"tracker\tracker.csv"
-
-    google_drive_folder = os.environ['DATASET_GOOGLE_DRIVE_ID_SAMPLE']
-    local_images_folder = r"images\sample"
-    labeling_csv = r"backup_files\sample.csv"
->>>>>>> 9110ce30ab3b2d95a554efa1c1f6f4cf021af634
->>>>>>> model-development
 
     run_pomelo_dataset_organizer(google_drive_folder, local_images_folder, labeling_csv, override_csv, ignore_subfolders)
 

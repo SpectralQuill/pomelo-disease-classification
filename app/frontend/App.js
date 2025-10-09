@@ -5,22 +5,21 @@ import Homescreen from "./screens/HomeScreen";
 import AppNavigator from "./navigation/AppNavigator";
 import { PaperProvider } from 'react-native-paper';
 import { theme } from './theme/theme'
-import ClassificationScreen from './components/ClassificationScreen';
 
 export default function App() {
   const [message, setMessage] = React.useState('');
 
   //not in use yetr
-//   useEffect(() => {
-//   axios.get('http://10.0.2.2:5000/') //ip to be used if using the emulator like android studio, else you might need to get your PC's IP address
-//     .then(response => {
-//       console.log('Response from Flask:', response.data);
-//       setMessage(response.data.message); // access the message string
-//     })
-//     .catch(error => {
-//       console.error('Error fetching from backend:', error);
-//     });
-// }, []);
+  useEffect(() => {
+  axios.get('http://10.0.2.2:5000/') //ip to be used if using the emulator like android studio, else you might need to get your PC's IP address
+    .then(response => {
+      console.log('Response from Flask:', response.data);
+      setMessage(response.data.message); // access the message string
+    })
+    .catch(error => {
+      console.error('Error fetching from backend:', error);
+    });
+}, []);
 
   return(
     <PaperProvider theme={theme}>
@@ -28,19 +27,3 @@ export default function App() {
     </PaperProvider>
   )
 }
-
-// export default function App() {
-//   return (
-//     <View style={styles.container}>
-//       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-//       <ClassificationScreen />
-//     </View>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: '#f8f9fa',
-//   },
-// });

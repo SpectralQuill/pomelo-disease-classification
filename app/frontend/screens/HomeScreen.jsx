@@ -3,50 +3,62 @@ import {View, Text, StyleSheet, Image} from 'react-native';
 import { Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import Layout from '../components/Layout';
+import theme from '../theme/theme';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
-
-  // return (
-  //   <View style={styles.container}>
-  //     <Text style={styles.title}>Pomelo</Text>
-  //     <Text style={styles.text}>Disease Detection</Text>
-  //     <Button
-  //       mode="contained"
-  //       onPress={() => navigation.navigate('Scanner')}
-  //       style={styles.button}
-  //     >
-  //       Start Scanning
-  //     </Button>
-  //   </View>
-  // );
-
-  //the gallery selection should immediately go to the ResultsScreen after picking an image
-  
+  const navigation = useNavigation();  
   return (
     <Layout>
-      <Text>Scan Your Pomelo</Text>
-      <View style={{backgroundColor: "#cfcfcfff"}}>
-        <Button 
-          mode='contained'
-          onPress={() => navigation.navigate('Scanner')}
+      <Text style={{color: theme.colors.primary, fontSize: 18}}>Scan Your Pomelo</Text>
+      <View style={{backgroundColor: "#eeeeeeff", alignItems: "center", height: 250,justifyContent: "center", borderRadius: 10,
+        paddingBottom: 10, paddingTop: 10, paddingRight: 30, paddingLeft: 30,
+      }}>
+        <Button
+          mode="contained"
+          style={{
+            width: "100%",
+            backgroundColor: theme.colors.primary,
+          }}
+          contentStyle={{
+            height: 60,
+            justifyContent: "center",
+          }}
+          onPress={() => navigation.navigate("Scanner")}
         >
-          Open Your Camera
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <MaterialIcons name="photo-camera" color="#fff" size={26} />
+            <Text style={{ color: "#fff", marginLeft: 8, fontSize: 20}}>Scan from Camera</Text>
+          </View>
         </Button>
 
-        <Text>or</Text>
-
-        <Button 
-          mode='contained'
-          onPress={() => navigation.navigate('Gallery')}
+        <Text style={{alignItems: "center", marginBottom: 20, marginTop: 20, fontSize: 20}}>or</Text>
+        
+        <Button
+          mode="contained"
+          style={{
+            width: "100%",
+            backgroundColor: theme.colors.primary,
+          }}
+          contentStyle={{
+            height: 60,
+            justifyContent: "center",
+          }}
+          onPress={() => navigation.navigate("Gallery")}
         >
-          Open From Gallery
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <MaterialIcons name="photo-library" color="#fff" size={26} />
+            <Text style={{ color: "#fff", marginLeft: 8, fontSize: 20 }}>Open from Gallery</Text>
+          </View>
         </Button>
       </View>
-      <Text>From Previous Results</Text>
+
+      {/* This layout will require me a database to establish first, only finish if main priority is finish <possible>*/}
+
+      {/* <Text>From Previous Results</Text>
       <View style={{backgroundColor: "#cfcfcfff"}}>
         <Text>Currently no results</Text>
-      </View>
+      </View> */}
     </Layout>
   );
 };

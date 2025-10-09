@@ -2,7 +2,7 @@
   "name": "pomelo-disease-classification",
   "version": "1.0.0",
   "scripts": {
-    "dataset_tools:install": "pip install -r requirements.txt",
+    "python_libs:install": "pip install -r requirements.txt",
     "dataset_tools:start": "python main.py",
     "image_lister": "python image_lister/image_lister_v1_0.py",
     "image_status_updater": "python image_status_updater/image_status_updater_v2_2.py",

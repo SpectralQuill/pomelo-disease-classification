@@ -20,16 +20,16 @@ const GalleryScreen = () => {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
+      allowsEditing: false,
       aspect: [4, 3],
       quality: 1,
     });
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
-      navigation.navigate("Result", { imageUri: uri });
+      navigation.navigate("Result", { photoUri: uri });
     } else {
-      navigation.goBack(); 
+      navigation.goBack();
     }
   };
 

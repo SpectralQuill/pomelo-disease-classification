@@ -9,7 +9,7 @@ load_dotenv()
 
 def load_pomelo_dataset_organizer():
     google_drive_folder = os.environ['DATASET_GOOGLE_DRIVE_ID']
-    local_images_folder = r"images\processed"
+    local_images_folder = r"Dataset"
     labeling_csv = r"tracker\tracker.csv"
 
     run_pomelo_dataset_organizer(google_drive_folder, local_images_folder, labeling_csv)

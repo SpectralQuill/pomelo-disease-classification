@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from image_status_updater.image_status_updater_v2_2 import main as update_image_statuses
 from image_trimmer.image_trimmer_v1_0 import main as trim_images
-from pomelo_dataset_organizer.pomelo_dataset_organizer_v2_3 import run_pomelo_dataset_organizer
+from pomelo_dataset_organizer.pomelo_dataset_organizer_v2_4 import run_pomelo_dataset_organizer
 from pomelo_extractor.pomelo_extractor_v2_15 import run_pomelo_extractor
 
 load_dotenv()
@@ -12,8 +12,10 @@ def load_pomelo_dataset_organizer():
     google_drive_folder = os.environ['DATASET_GOOGLE_DRIVE_ID']
     local_images_folder = r"images\processed"
     labeling_csv = r"tracker\tracker.csv"
+    override_csv = r"tracker\override.csv"
+    ignore_subfolders = None
 
-    run_pomelo_dataset_organizer(google_drive_folder, local_images_folder, labeling_csv)
+    run_pomelo_dataset_organizer(google_drive_folder, local_images_folder, labeling_csv, override_csv, ignore_subfolders)
 
 def load_pomelo_extractor():
     input_folder = r"images\raw"
@@ -48,7 +50,8 @@ def main():
         description="Enter number of script to run or leave blank to choose from menu"
     )
     parser.add_argument(
-        "--choice", type=int, default=None, help="Number of script to run"
+        'choice', type=int, nargs='?', default=None, 
+        help="Number of script to run (optional)"
     )
     args = parser.parse_args()
     choice_keys = list(choices.keys())

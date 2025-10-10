@@ -71,4 +71,5 @@ credentials.json
 # dev
 /backup_files
 /replacements.txt
-/sample
+/snippet.txt
+/temp

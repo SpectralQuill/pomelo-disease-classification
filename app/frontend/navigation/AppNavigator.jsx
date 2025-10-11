@@ -5,14 +5,14 @@ import ResultScreen from '../screens/ResultScreen';
 import ScannerScreen from '../screens/ScannerScreen';
 import OpeningScreen from '../screens/OpeningScreen';
 import MainScreen from '../screens/MainScreen';
-import GalleryScreen from '../screens/GalleryScreen';
+import GalleryPickerScreen from '../screens/GalleryPickerScreen';
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Opening" screenOptions={{headerShown: false}}>
+      <Stack.Navigator initialRouteName="Opening" screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="Opening"
           component={OpeningScreen}
@@ -22,8 +22,8 @@ export default function AppNavigator() {
           component={MainScreen}
         />
         <Stack.Screen
-          name="Gallery"
-          component={GalleryScreen}
+          name="Picker"
+          component={GalleryPickerScreen}
         />
         <Stack.Screen
           name="Scanner"

@@ -3,7 +3,7 @@ import { View, Image, StyleSheet } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
 
-const GalleryScreen = () => {
+const GalleryPickerScreen = () => {
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -40,4 +40,4 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
 });
 
-export default GalleryScreen;
+export default GalleryPickerScreen;

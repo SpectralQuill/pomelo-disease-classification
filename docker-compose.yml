@@ -1,5 +1,5 @@
 services:
-  pomelo-backend:
+  pomelo-classification-app-backend:
     build:
       context: ./app/backend
       dockerfile: Dockerfile

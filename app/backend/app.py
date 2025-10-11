@@ -1,12 +1,13 @@
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import numpy as np
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.applications.efficientnet import preprocess_input
 from tensorflow.keras.preprocessing import image as kimage
 import joblib
 import io
+import os
 from PIL import Image
 import warnings
 from sklearn.exceptions import InconsistentVersionWarning
@@ -245,21 +246,30 @@ if __name__ == '__main__':
         print("=" * 50)
         print("🚀 Starting Pomelo Disease Classification Backend...")
         print("=" * 50)
-        
-        # Load models
+
+        # --- Load .env from project root (two levels up from this file) ---
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+        dotenv_path = os.path.join(base_dir, ".env")
+        load_dotenv(dotenv_path)
+
+        # --- Read environment variables ---
+        host = os.getenv("FLASK_HOST", "0.0.0.0")
+        port = int(os.getenv("FLASK_PORT", 5000))
+
+        # --- Load models ---
         load_models()
-        
-        print("🌐 Server starting on http://0.0.0.0:5000")
+
+        print(f"🌐 Server starting on http://{host}:{port}")
         print("💡 Test with: curl http://localhost:5000/health")
         print("💡 Test prediction with: curl -X POST -F 'image=@test.jpg' http://localhost:5000/predict")
-        
-        # Start the server
-        app.run(host='0.0.0.0', port=5000, debug=False)
-        
+
+        # --- Start Flask server ---
+        app.run(host=host, port=port, debug=False)
+
     except Exception as e:
         print("💥 CRITICAL ERROR - Server failed to start!")
         print(f"Error: {e}")
-        print("Full traceback:")
+        import traceback
         traceback.print_exc()
         print("❌ Exiting...")
         sys.exit(1)

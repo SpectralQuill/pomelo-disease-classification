@@ -51,26 +51,35 @@ export default function ScannerScreen({ navigation }) {
     <View style={appStyle.container}>
       <CameraView ref={cameraRef} style={appStyle.camera_container} facing={cameraFacing} flash={flashMode} />
       <View style={appStyle.button_container}>
-        <IconButton
-          icon='flash'
-          iconColor='white'
-          size={30}
-          onPress={handleToggleFlash}
-        />
-        <IconButton
-          icon="camera"
-          containerColor="green"
-          iconColor="white"
-          size={45}
-          onPress={takePicture} />
-        <IconButton
-          icon={() => (
-            <MaterialIcons name='cameraswitch' size={28} color={'#fff'} />
-          )}
-          iconColor="white"
-          size={25}
-          onPress={handleCameraSwitching}
-        />
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <IconButton
+            icon='flash'
+            iconColor='white'
+            size={30}
+            onPress={handleToggleFlash}
+          />
+        </View>
+
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <IconButton
+            icon="camera"
+            containerColor="green"
+            iconColor="white"
+            size={80}
+
+            onPress={takePicture} />
+        </View>
+
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <IconButton
+            icon={() => (
+              <MaterialIcons name='cameraswitch' size={28} color={'#fff'} />
+            )}
+            iconColor="white"
+            size={25}
+            onPress={handleCameraSwitching}
+          />
+        </View>
       </View>
     </View>
   );

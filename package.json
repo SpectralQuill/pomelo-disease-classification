@@ -2,21 +2,26 @@
   "name": "pomelo-disease-classification",
   "version": "1.0.0",
   "scripts": {
-    "python_libs:install": "pip install -r requirements.txt",
-    "dataset_tools:start": "python main.py",
-    "image_lister": "python image_lister/image_lister_v1_0.py",
-    "image_status_updater": "python image_status_updater/image_status_updater_v2_2.py",
-    "image_trimmer": "python image_trimmer/image_trimmer_v1_0.py",
-    "pomelo_dataset_organizer": "python pomelo_dataset_organizer/pomelo_dataset_organizer_v1_0.py",
-    "pomelo_extractor": "python pomelo_extractor/pomelo_extractor_v2_14.py",
-
+    "dataset:install": "pip install -r requirements.txt",
+    "dataset:start": "python main.py",
+    "dataset:image_lister": "python image_lister/image_lister_v1_0.py",
+    "dataset:image_status_updater": "python image_status_updater/image_status_updater_v2_2.py",
+    "dataset:image_trimmer": "python image_trimmer/image_trimmer_v1_0.py",
+    "dataset:pomelo_dataset_organizer": "python pomelo_dataset_organizer/pomelo_dataset_organizer_v1_0.py",
+    "dataset:pomelo_extractor": "python pomelo_extractor/pomelo_extractor_v2_14.py",
     "frontend:install": "cd app/frontend && npm install",
     "frontend:start": "cd app/frontend && npm run start",
     "frontend:android": "cd app/frontend && npm run android",
     "frontend:android:symlink": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const frontendPath = process.env.FRONTEND_SYMLINK || 'app/frontend'; execSync('npm run android', { cwd: frontendPath, stdio: 'inherit' });\"",
     "frontend:ios": "cd app/frontend && npm run ios",
     "frontend:ios:symlink": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const frontendPath = process.env.FRONTEND_SYMLINK || 'app/frontend'; execSync('npm run ios', { cwd: frontendPath, stdio: 'inherit' });\"",
-    "frontend:web": "cd app/frontend && npm run web"
+    "frontend:web": "cd app/frontend && npm run web",
+    "backend:start": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const name='pomelo-classification-app-backend'; const port=process.env.HOST_PORT||5000; try { const ids=execSync(`docker ps -aq -f name=${name}`, { encoding: 'utf8', shell: true }).trim(); if(ids) execSync(`docker rm -f ${ids}`, { stdio: 'inherit', shell: true }); } catch(e) {} execSync('docker build -t pomelo-classification-app-backend app/backend', { stdio: 'inherit', shell: true }); execSync(`docker run -d -p ${port}:5000 --env-file .env --name ${name} pomelo-classification-app-backend`, { stdio: 'inherit', shell: true });\"",
+    "backend:dev": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const name='pomelo-classification-app-backend'; const port=process.env.HOST_PORT||5000; try { const ids=execSync(`docker ps -aq -f name=${name}`, { encoding: 'utf8', shell: true }).trim(); if(ids) execSync(`docker rm -f ${ids}`, { stdio: 'inherit', shell: true }); } catch(e) {} execSync(`docker run -d -p ${port}:5000 -v ${process.cwd()}/app/backend:/app --env-file .env --name ${name} pomelo-classification-app-backend`, { stdio: 'inherit', shell: true });\"",
+    "backend:build": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); execSync('docker build -t pomelo-classification-app-backend app/backend', { stdio: 'inherit', shell: true });\"",
+    "backend:run": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const port=process.env.HOST_PORT||5000; execSync(`docker run -d -p ${port}:5000 --env-file .env --name pomelo-classification-app-backend pomelo-classification-app-backend`, { stdio: 'inherit', shell: true });\"",
+    "backend:stop": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const name='pomelo-classification-app-backend'; try { const ids=execSync(`docker ps -aq -f name=${name}`, { encoding: 'utf8', shell: true }).trim(); if(ids) execSync(`docker rm -f ${ids}`, { stdio: 'inherit', shell: true }); } catch(e) {}\"",
+    "backend:predict": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const image = process.argv[1] || process.argv[2]; if(!image) { console.error('❌ Missing image path.'); process.exit(1); } const host = process.env.API_HOST || 'localhost'; const port = process.env.API_PORT || process.env.HOST_PORT || 8080; const url = `http://${host}:${port}/predict`; console.log(`📤 Sending ${image} to ${url}`); execSync(`curl -X POST -F \\\"image=@${image}\\\" ${url}`, { stdio: 'inherit', shell: true });\""
   },
   "private": true
 }

@@ -3,7 +3,7 @@ import { View } from "react-native";
 import theme from "../theme/theme";
 import HomeScreen from "./HomeScreen";
 import PreviousResultsScreen from "./PreviousResultsScreen";
-import ProfileScreen from "./ProfileScreen";
+import AccountScreen from "./AccountScreen";
 import { MaterialIcons } from '@expo/vector-icons'
 
 const Tab = createBottomTabNavigator();
@@ -32,7 +32,7 @@ export default function MainScreen() {
       {[
         { name: "Home", icon: "home", component: HomeScreen },
         { name: "Catalogue", icon: "photo-library", component: PreviousResultsScreen },
-        { name: "Profile", icon: "person", component: ProfileScreen },
+        { name: "Account", icon: "person", component: AccountScreen },
       ].map((tab) => (
         <Tab.Screen
           key={tab.name}

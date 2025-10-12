@@ -9,6 +9,7 @@ export default function ScannerScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraFacing, setCameraFacing] = useState("back");
   const [flashMode, setFlashMode] = useState('off');
+  const [flashModeIcon, setFlashModeIcon] = useState('flash');
   const cameraRef = useRef(null);
 
   if (!permission) {
@@ -42,9 +43,13 @@ export default function ScannerScreen({ navigation }) {
     setFlashMode((prev) => {
       if (prev === 'off') return 'on';
       if (prev === 'on') return 'auto';
-      if (prev === 'auto') return 'torch';
       return 'off';
     });
+    setFlashModeIcon((prev) => {
+      if (prev === 'flash-off') return 'flash';
+      if (prev === 'flash') return 'flash-auto';
+      return 'flash-off';
+    })
   }
 
   return (
@@ -53,7 +58,7 @@ export default function ScannerScreen({ navigation }) {
       <View style={appStyle.button_container}>
         <View style={{ flex: 1, alignItems: 'center' }}>
           <IconButton
-            icon='flash'
+            icon={flashModeIcon}
             iconColor='white'
             size={30}
             onPress={handleToggleFlash}
@@ -61,11 +66,12 @@ export default function ScannerScreen({ navigation }) {
         </View>
 
         <View style={{ flex: 1, alignItems: 'center' }}>
+
           <IconButton
             icon="camera"
             containerColor="green"
             iconColor="white"
-            size={80}
+            size={60}
 
             onPress={takePicture} />
         </View>

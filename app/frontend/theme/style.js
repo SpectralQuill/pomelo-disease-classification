@@ -10,6 +10,24 @@ export const appStyle = StyleSheet.create({
         flex: 1,
         backgroundColor: 'white',
     },
+    camera_container: {
+        flex: 1,
+        justifyContent: 'space-around'
+    },
+    button_container: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        position: 'absolute',
+        bottom: 0,
+        width: '110%',
+        height: 120,
+        alignSelf: 'center',
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 10,
+    },
     appBar: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -19,7 +37,7 @@ export const appStyle = StyleSheet.create({
     logo_title: {
         fontSize: 24,
         fontWeight: 'bold',
-         color: "#FFFFFF"
+        color: "#FFFFFF"
     },
     centered: {
         justifyContent: 'center',

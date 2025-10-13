@@ -13,6 +13,10 @@ const ResultScreen = ({ route }) => {
   const [showSelectModal, setShowSelectModal] = useState(false);
   const { photoUri } = route.params || {};
 
+  const handleCloseModal = () => {
+    setShowSelectModal(false);
+  }
+
   //Result screen have a different layout than the rest, so it should only have the header
   return (
     <View style={appStyle.container}>
@@ -68,7 +72,7 @@ const ResultScreen = ({ route }) => {
 
       </ScrollView>
 
-      {showSelectModal && <SelectionModal isVisible={showSelectModal}></SelectionModal>}
+      {showSelectModal && <SelectionModal isVisible={showSelectModal} onClose={handleCloseModal}></SelectionModal>}
     </View>
   );
 };

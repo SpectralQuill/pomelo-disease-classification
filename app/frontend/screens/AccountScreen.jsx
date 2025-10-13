@@ -1,10 +1,11 @@
 import { View } from "react-native";
+import Layout from "../components/Layout";
 
 const ProfileScreen = () => {
-    return(
-        <View>
-            
-        </View>
+    return (
+        <Layout>
+
+        </Layout>
     );
 }
 export default ProfileScreen;

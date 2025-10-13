@@ -1,25 +1,73 @@
+import React, { useState, useEffect, useRef } from 'react';
 import { View, ScrollView, Text, StyleSheet, Image } from 'react-native';
 import AppHeader from '../components/AppHeader';
 import { appStyle } from '../theme/style';
 import { useNavigation } from '@react-navigation/native';
 import { Button } from 'react-native-paper';
-import { useState } from 'react';
 import SelectionModal from '../components/modals/SelectionModal';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import theme from '../theme/theme';
+import classificationService from '../services/classificationService';
+import LoadingOverlay from '../components/LoadingOverlay';
 
 const ResultScreen = ({ route }) => {
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
   const [showSelectModal, setShowSelectModal] = useState(false);
   const { photoUri } = route.params || {};
+  const [result, setResult] = useState(null);
+  const [confidenceColor, setConfidenceColor] = useState('#6b6b6bff');
+
 
   const handleCloseModal = () => {
     setShowSelectModal(false);
+  }
+  useEffect(() => {
+    if (backendStatus === 'connected') {
+      classifyImage();
+    }
+  }, [backendStatus]);
+
+  const classifyImage = async () => {
+    if (!photoUri) {
+      Alert.alert('No images detected, Please retry');
+      return;
+    }
+
+    if (backendStatus !== 'connected') {
+      Alert.alert('Backend Unavailable', 'Please ensure the backend server is running and connected.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      console.log('Starting classification...');
+      const classificationResult = await classificationService.classifyImage(selectedImage);
+      setResult(classificationResult);
+      handlePredictionColor();
+      console.log('Classification result:', classificationResult);
+    } catch (error) {
+      Alert.alert('Classification Error', error.message);
+      console.error('Classification error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePredictionColor = () => {
+    if ((result.confidence * 100).toFixed(1) <= 50) { setConfidenceColor('#FF4C4C') }
+    if ((result.confidence * 100).toFixed(1) > 50 && (result.confidence * 100).toFixed(1) <= 70) setConfidenceColor('#FFA500');
+    if ((result.confidence * 100).toFixed(1) > 70 && (result.confidence * 100).toFixed(1) <= 85) setConfidenceColor('#FFD700');
+    if ((result.confidence * 100).toFixed(1) > 85 && (result.confidence * 100).toFixed(1) <= 95) setConfidenceColor('#9ACD32');
+    if ((result.confidence * 100).toFixed(1) > 95) setConfidenceColor('#00C853');
+    else setConfidenceColor('#858585ff');
+    return;
   }
 
   //Result screen have a different layout than the rest, so it should only have the header
   return (
     <View style={appStyle.container}>
+      {loading && <LoadingOverlay />}
       <AppHeader />
       <ScrollView contentContainerStyle={{
         backgroundColor: "#eeeeeeff", alignItems: 'center', flex: 1, justifyContent: 'center',
@@ -31,12 +79,12 @@ const ResultScreen = ({ route }) => {
           <Text>No image captured</Text>
         )}
         <Text style={styles.title}>Result</Text>
-        <Text style={styles.result}>Name of Result</Text>
+        <Text style={styles.result}>{result.predicted_class}</Text>
         <View style={{
-          width: '100%', height: 20, backgroundColor: '#40e778ff', justifyContent: 'center',
+          width: '100%', height: 20, backgroundColor: confidenceColor, justifyContent: 'center',
           alignItems: 'center', borderRadius: 10
         }}>
-          <Text>Percentage here</Text>
+          <Text>Confidence: {(result.confidence * 100).toFixed(1)}%</Text>
         </View>
         <Text style={styles.description}>Description of scanned pomelo images should go here</Text>
 

@@ -5,9 +5,28 @@ import { useNavigation } from '@react-navigation/native';
 import Layout from '../components/Layout';
 import theme from '../theme/theme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import classificationService from '../services/classificationService';
 
 const HomeScreen = () => {
+  const [backendStatus, setBackendStatus] = useState('checking');
   const navigation = useNavigation();
+
+  useEffect(() => {
+    checkBackendStatus();
+  }, []);
+
+  const checkBackendStatus = async () => {
+    try {
+      setBackendStatus('checking');
+      const status = await classificationService.healthCheck();
+      setBackendStatus('connected');
+      console.log('Backend status:', status);
+    } catch (error) {
+      setBackendStatus('disconnected');
+      console.log('Backend error:', error.message);
+    }
+  };
+
   return (
     <Layout>
       <Text style={{ color: theme.colors.primary, fontSize: 18 }}>Scan Your Pomelo</Text>

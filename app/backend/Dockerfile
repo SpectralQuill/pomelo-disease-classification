@@ -19,8 +19,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # ---------- Copy the rest of the backend code ----------
 COPY . .
 
-# ---------- Expose Flask Port ----------
-EXPOSE 5000
-
 # ---------- Default Command ----------
 CMD ["python", "app.py"]

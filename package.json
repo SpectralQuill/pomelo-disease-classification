@@ -21,8 +21,5 @@
     "backend:remove": "node ./scripts/backend-remove.js",
     "backend:predict": "node ./scripts/backend-predict.js"
   },
-  "private": true,
-  "devDependencies": {
-    "dotenv": "^17.2.3"
-  }
+  "private": true
 }

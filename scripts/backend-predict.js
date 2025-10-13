@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 const { execSync } = require("child_process");
 const path = require("path");
-require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+require(path.resolve(__dirname, "../app/frontend/node_modules/dotenv")).config({
+  path: path.resolve(__dirname, "../.env"),
+});
 
 const image = process.argv[2];
 if (!image) {

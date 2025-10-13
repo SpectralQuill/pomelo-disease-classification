@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-
 const { execSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
-require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+require(path.resolve(__dirname, "../app/frontend/node_modules/dotenv")).config({
+  path: path.resolve(__dirname, "../.env"),
+});
 
 // ---------- ENV CONFIG ----------
 const imageName = process.env.DOCKER_IMAGE_NAME || "pomelo-backend";

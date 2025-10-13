@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { API_HOST, API_PORT } from '@env';
 
 function getBaseURL() {
-  let host = API_HOST;
+  let host = API_HOST || 'localhost';
   let port = API_PORT || 5000;
 
   // Android Emulator: use 10.0.2.2 if host is localhost

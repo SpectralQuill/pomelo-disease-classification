@@ -76,3 +76,4 @@ credentials.json
 /replacements.txt
 /snippet.txt
 /temp
+.docker-cache.json

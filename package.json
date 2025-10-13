@@ -16,6 +16,7 @@
     "frontend:ios": "cd app/frontend && npm run ios",
     "frontend:ios:symlink": "node -e \"require('./app/frontend/node_modules/dotenv').config({ path: './.env' }); const { execSync } = require('child_process'); const frontendPath = process.env.FRONTEND_SYMLINK || 'app/frontend'; execSync('npm run ios', { cwd: frontendPath, stdio: 'inherit' });\"",
     "frontend:web": "cd app/frontend && npm run web",
+    "frontend:predict": "node ./scripts/frontend-predict.js",
     "backend:start": "node ./scripts/backend-start.js",
     "backend:stop": "node ./scripts/backend-stop.js",
     "backend:remove": "node ./scripts/backend-remove.js",

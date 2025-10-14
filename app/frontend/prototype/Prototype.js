@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { View, Text, StatusBar, StyleSheet } from 'react-native';
 import axios from 'axios';
-import Homescreen from "./screens/HomeScreen";
-import AppNavigator from "./navigation/AppNavigator";
+import Homescreen from "../screens/HomeScreen";
+import AppNavigator from "../navigation/AppNavigator";
 import { PaperProvider } from 'react-native-paper';
-import { theme } from './theme/theme'
-import ClassificationScreen from './components/ClassificationScreen';
+import { theme } from '../theme/theme'
+import ClassificationScreen from './ClassificationScreen';
 
 export default function App() {
   return (

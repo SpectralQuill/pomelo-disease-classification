@@ -14,16 +14,12 @@ import { useServerConnection } from '../context/ServerConnectionContext';
 
 const ResultScreen = ({ route }) => {
   const { isConnected, isChecking, refreshConnection } = useServerConnection();
-  console.log('Type:', typeof classificationService);
-  console.log('Keys:', Object.keys(classificationService));
-
   const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
   const [showSelectModal, setShowSelectModal] = useState(false);
   const { photoUri } = route.params || {};
   const [result, setResult] = useState(null);
   const [confidenceColor, setConfidenceColor] = useState('#6b6b6bff');
-
 
   const handleCloseModal = () => {
     setShowSelectModal(false);
@@ -78,12 +74,12 @@ const ResultScreen = ({ route }) => {
 
   return (
     <View style={appStyle.container}>
-      {loading && <LoadingOverlay />}
       <AppHeader />
+      {loading && <LoadingOverlay />}
       {result &&
         <ScrollView contentContainerStyle={{
           backgroundColor: "#eeeeeeff", alignItems: 'center', flex: 1, justifyContent: 'center',
-          borderRadius: 10, paddingBottom: 10, paddingTop: 10, paddingRight: 30, paddingLeft: 30
+          borderRadius: 10, paddingBottom: 10, paddingTop: 10, paddingRight: 30, paddingLeft: 30, marginTop: 90,
         }}>
           <View>
             <View style={{ alignItems: 'center' }}>

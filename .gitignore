@@ -1,73 +1,204 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# ==========================================
+# 🧩 GENERAL INFO
+# Learn more: https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# ==========================================
 
-# dependencies
+# ==========================================
+# 🧱 DEPENDENCIES
+# ==========================================
 node_modules/
 **/node_modules/
 *.pth
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# Expo native build output
-android/
-ios/
+# ==========================================
+# ⚙️ BUILD OUTPUTS
+# ==========================================
+dist/
+build/
+web-build/
+out/
+*.apk
+*.aab
+*.app
+*.exe
+*.deb
+*.dmg
 
-# Metro + Expo cache
+# ==========================================
+# 🧠 EXPO / METRO CACHES
+# ==========================================
 .expo/
 .expo-shared/
-.expo/web-cache/
 .expo/web/
+.expo/web-cache/
 .expo/packager-info.json
 .expo/devices.json
 expo-env.d.ts
+.metro-health-check*
 
-# Build outputs
-dist/
-web-build/
-*.apk
-*.aab
-
-# Native
+# ==========================================
+# 📱 NATIVE BUILDS
+# ==========================================
+android/
+ios/
 .kotlin/
-*.orig.*
 *.jks
 *.p8
 *.p12
 *.key
+*.keystore
 *.mobileprovision
+*.orig.*
 
-# Metro
-.metro-health-check*
+# ==========================================
+# 🧰 BACKEND / PYTHON
+# ==========================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+*.manifest
+*.spec
+.Python
+env/
+venv/
+ENV/
+.venv/
+pip-wheel-metadata/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.cache/
+.dmypy.json
+pytestdebug.log
+.pyre/
+*.log
+.idea/
+.vscode/
+*.sqlite3
+.backend-hash.json
 
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+# ==========================================
+# 🐳 DOCKER / CONTAINERS
+# ==========================================
+docker-compose.override.yml
+Dockerfile.*
+*.dockerfile
+.docker/
+.docker-cache.json
+**/tmp/
+**/logs/
+**/log/
+**/run/
+*.pid
+*.seed
+*.bak
+*.backup
+**/.pytest_cache/
+**/__pycache__/
+**/cache/
+**/data/
+**/output/
+**/uploads/
 
-# macOS
-.DS_Store
-*.pem
-
-# config files
+# ==========================================
+# 🧾 CONFIGURATION FILES
+# ==========================================
 .env
 .env*.local
 users.csv
-
-# typescript
-*.tsbuildinfo
-
-# python
-__pycache__
-
-# dataset
-/images
-/Dataset
-
-# others
-.idea/
-~$*.xlsx
-
-# Google Cloud
 client_secrets.json
 credentials.json
+config.json
+settings.json
+secrets.json
+firebase-debug.log
 
-# dev
-/backup_files
+# ==========================================
+# 🐛 DEBUG / LOG FILES
+# ==========================================
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+*.tmp
+*.swp
+*.swo
+
+# ==========================================
+# 💻 SYSTEM / OS FILES
+# ==========================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.pem
+*.crt
+*.csr
+*.cer
+*.der
+*.old
+
+# ==========================================
+# 🧪 TYPESCRIPT / DEV ARTIFACTS
+# ==========================================
+*.tsbuildinfo
+*.map
+
+# ==========================================
+# 📷 DATASETS / IMAGES
+# ==========================================
+/images/
+/Dataset/
+/data/
+/datasets/
+/media/
+/assets/uploads/
+/notebooks/
+/models/
+/weights/
+
+# ==========================================
+# 🛠️ LOCAL / DEVELOPMENT FILES
+# ==========================================
+/backup_files/
 /replacements.txt
+/snippet.txt
+/temp/
+/tmp/
+/to_delete/
+/old/
+/drafts/
+/__test__/
+/test_output/
+.docker-cache.json
+
+# ==========================================
+# 📓 JUPYTER / NOTEBOOKS
+# ==========================================
+.ipynb_checkpoints/
+*.ipynb~
+notebook.log
+
+# ==========================================
+# 🗂️ MISC
+# ==========================================
+.idea/
+.vscode/
+~$*.xlsx
+*.iml
+*.class
+*.war
+*.jar
+*.zip
+*.gz
+*.tar
+*.tgz
+*.7z
+*.bak

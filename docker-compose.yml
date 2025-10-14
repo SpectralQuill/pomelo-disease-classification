@@ -1,0 +1,10 @@
+services:
+  pomelo-disease-classification-app-backend:
+    build:
+      context: ./app/backend
+      dockerfile: Dockerfile
+    ports:
+      - "${HOST_PORT:-8080}:${FLASK_PORT:-5000}"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

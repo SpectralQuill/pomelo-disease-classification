@@ -1,0 +1,126 @@
+# ==========================================
+# 🧩 GENERAL INFO
+# Exclude unnecessary files from Docker build context
+# to reduce image size and speed up builds.
+# ==========================================
+
+# ==========================================
+# 🧱 DEPENDENCIES & ENVIRONMENTS
+# ==========================================
+node_modules
+**/node_modules
+venv
+.venv
+ENV
+env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+.eggs
+pip-wheel-metadata
+
+# ==========================================
+# ⚙️ BUILD / CACHE FILES
+# ==========================================
+.cache
+.pytest_cache
+.mypy_cache
+.dmypy.json
+pytestdebug.log
+.pyre
+build
+dist
+tmp
+temp
+*.log
+.backend-hash.json
+
+# ==========================================
+# 📦 PACKAGE MANAGER FILES
+# ==========================================
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ==========================================
+# 🧠 DATA / MODEL FILES
+# ==========================================
+Dataset/
+datasets/
+data/
+images/
+weights/
+models/
+outputs/
+checkpoints/
+logs/
+media/
+uploads/
+results/
+notebooks/
+*.h5
+*.pt
+*.pth
+*.onnx
+*.npz
+*.npy
+*.csv
+*.xlsx
+*.zip
+*.tar
+*.gz
+*.7z
+
+# ==========================================
+# 🧾 CONFIG / SECRETS
+# ==========================================
+.env
+.env*.local
+client_secrets.json
+credentials.json
+secrets.json
+firebase-debug.log
+users.csv
+
+# ==========================================
+# 🧰 DEVELOPMENT / IDE FILES
+# ==========================================
+.idea
+.vscode
+*.iml
+*.swp
+*.swo
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==========================================
+# 🐳 DOCKER FILES (KEEP ONLY THIS DIRECTORY'S)
+# ==========================================
+.dockerignore
+docker-compose.override.yml
+.docker-cache.json
+
+# ==========================================
+# 🧪 TESTS / MISC
+# ==========================================
+__test__/
+test_output/
+backup_files/
+old/
+drafts/
+replacements.txt
+snippet.txt
+
+# ==========================================
+# 🧩 FRONTEND / NON-BACKEND FILES
+# ==========================================
+../frontend/
+../../scripts/
+../../node_modules/
+../../Dataset/
+../../images/

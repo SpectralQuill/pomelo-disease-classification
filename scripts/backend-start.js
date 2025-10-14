@@ -2,6 +2,7 @@
 const { execSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 
 // ------------------------------------------
 // 🧩 Load environment variables
@@ -11,7 +12,7 @@ require(path.resolve(__dirname, "../app/frontend/node_modules/dotenv")).config({
 });
 
 // ------------------------------------------
-// 🧱 Environment variables
+// ⚙️ Environment setup
 // ------------------------------------------
 const imageName = process.env.DOCKER_IMAGE_NAME || "pomelo-backend";
 const containerName = process.env.DOCKER_CONTAINER_NAME || "pomelo-backend";
@@ -21,53 +22,126 @@ const hostPort = process.env.HOST_PORT || "8080";
 const backendDir = path
   .resolve(__dirname, "../app/backend")
   .replace(/\\/g, "/");
+const reqFile = path.join(backendDir, "requirements.txt");
+const hashFilePath = path.resolve(__dirname, "../.backend-hash.json");
 
 // ------------------------------------------
-// 🧩 Helper: Run commands safely
+// 🧠 Helper functions
 // ------------------------------------------
-function runCommand(command, options = {}) {
+function run(command, exitOnFail = true) {
   try {
     console.log(`\n▶️ ${command}`);
-    execSync(command, { stdio: "inherit", shell: true, ...options });
+    execSync(command, { stdio: "inherit", shell: true });
   } catch (err) {
     console.error(`❌ Command failed: ${command}`);
-    console.error(err.message);
-    process.exit(1);
+    if (exitOnFail) process.exit(1);
+  }
+}
+
+function hashFile(filepath) {
+  const buffer = fs.readFileSync(filepath);
+  return crypto.createHash("sha256").update(buffer).digest("hex");
+}
+
+function hashFolder(dir) {
+  const files = [];
+  function walk(current) {
+    for (const entry of fs.readdirSync(current)) {
+      const full = path.join(current, entry);
+      const stat = fs.statSync(full);
+      if (stat.isDirectory()) walk(full);
+      else if (stat.isFile()) files.push(full);
+    }
+  }
+  walk(dir);
+  const hash = crypto.createHash("sha256");
+  for (const file of files) {
+    hash.update(fs.readFileSync(file));
+  }
+  return hash.digest("hex");
+}
+
+function dockerExists(type, name) {
+  try {
+    execSync(`docker ${type} inspect "${name}"`, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
   }
 }
 
 // ------------------------------------------
-// 🔍 Check for Docker installation
+// 🔍 Step 1: Detect backend & requirements changes
 // ------------------------------------------
-try {
-  execSync("docker --version", { stdio: "ignore" });
-} catch {
-  console.error("❌ Docker is not installed or not in PATH.");
-  process.exit(1);
+console.log("🔍 Checking backend and requirements for changes...");
+
+const currentBackendHash = hashFolder(backendDir);
+const currentReqHash = fs.existsSync(reqFile) ? hashFile(reqFile) : null;
+
+let previous = {};
+if (fs.existsSync(hashFilePath)) {
+  previous = JSON.parse(fs.readFileSync(hashFilePath, "utf8"));
 }
 
+const backendChanged = previous.backendHash !== currentBackendHash;
+const reqChanged = previous.reqHash !== currentReqHash;
+
+console.log(`📦 requirements.txt changed: ${reqChanged}`);
+console.log(`📂 backend files changed: ${backendChanged}`);
+
 // ------------------------------------------
-// 🛠️ Build Docker image if missing
+// 🧱 Step 2: Check image & container state
 // ------------------------------------------
-function ensureDockerImage() {
-  try {
-    execSync(`docker image inspect "${imageName}"`, { stdio: "ignore" });
-    console.log(`✅ Docker image '${imageName}' already exists.`);
-  } catch {
-    console.log(`🛠️ Building Docker image '${imageName}'...`);
-    runCommand(`docker build -t "${imageName}" "${backendDir}"`);
+const imageExists = dockerExists("image", imageName);
+const containerExists = dockerExists("container", containerName);
+
+// ------------------------------------------
+// 🧱 Step 3: Decide build/recreate logic
+// ------------------------------------------
+if (!imageExists || backendChanged || reqChanged) {
+  if (reqChanged) console.log("📦 requirements.txt changed — full rebuild needed.");
+  else if (backendChanged) console.log("🧩 Backend code changed — rebuilding image.");
+  else console.log("🛠️ Image missing — building fresh image.");
+
+  // Stop & remove old container
+  if (containerExists) {
+    console.log(`🧹 Removing existing container '${containerName}'...`);
+    run(`docker stop "${containerName}"`, false);
+    run(`docker rm "${containerName}"`, false);
   }
-}
 
-// ------------------------------------------
-// 🧱 Create Docker container if missing
-// ------------------------------------------
-function ensureDockerContainer() {
-  try {
-    execSync(`docker inspect "${containerName}"`, { stdio: "ignore" });
-    console.log(`✅ Container '${containerName}' already exists.`);
-  } catch {
-    console.log(`🚀 Creating new container '${containerName}'...`);
+  // Build (Docker caching keeps pip layers unless requirements.txt changed)
+  run(`docker build -t "${imageName}" "${backendDir}"`);
+
+  // Create new container
+  const createCmd = [
+    "docker create",
+    `--name "${containerName}"`,
+    `-p "${hostPort}:${flaskPort}"`,
+    `-v "${backendDir}:/app"`,
+    `-e "FLASK_RUN_HOST=${flaskHost}"`,
+    `-e "FLASK_RUN_PORT=${flaskPort}"`,
+    `-e "PYTHONUNBUFFERED=1"`,
+    `"${imageName}"`,
+  ].join(" ");
+  run(createCmd);
+
+  // Update stored hash
+  fs.writeFileSync(
+    hashFilePath,
+    JSON.stringify(
+      {
+        backendHash: currentBackendHash,
+        reqHash: currentReqHash,
+      },
+      null,
+      2
+    )
+  );
+} else {
+  console.log("✅ No changes detected — reusing existing image and container.");
+  if (!containerExists) {
+    console.log(`⚙️ Creating missing container '${containerName}'...`);
     const createCmd = [
       "docker create",
       `--name "${containerName}"`,
@@ -78,47 +152,12 @@ function ensureDockerContainer() {
       `-e "PYTHONUNBUFFERED=1"`,
       `"${imageName}"`,
     ].join(" ");
-    runCommand(createCmd);
+    run(createCmd);
   }
 }
 
 // ------------------------------------------
-// ▶️ Start the container
+// ▶️ Step 4: Start container (guaranteed)
 // ------------------------------------------
-function startDockerContainer() {
-  console.log(`▶️ Starting container '${containerName}' on port ${hostPort}...`);
-  try {
-    runCommand(`docker start -a "${containerName}"`);
-  } catch (err) {
-    console.error("❌ Failed to start backend container.");
-    console.error(err.message);
-    process.exit(1);
-  }
-}
-
-// ------------------------------------------
-// 🧼 Clean up stopped containers (optional helper)
-// ------------------------------------------
-function removeDanglingContainers() {
-  try {
-    const result = execSync(`docker ps -aq -f "status=exited" -f "ancestor=${imageName}"`, {
-      encoding: "utf8",
-    }).trim();
-    if (result) {
-      console.log("🧹 Removing exited containers related to the image...");
-      runCommand(`docker rm ${result}`);
-    }
-  } catch (_) {
-    // Safe to ignore
-  }
-}
-
-// ------------------------------------------
-// 🚦 Execution Flow
-// ------------------------------------------
-console.log("🚀 Starting backend container...");
-
-removeDanglingContainers();
-ensureDockerImage();
-ensureDockerContainer();
-startDockerContainer();
+console.log(`▶️ Starting container '${containerName}'...`);
+run(`docker start -a "${containerName}"`);

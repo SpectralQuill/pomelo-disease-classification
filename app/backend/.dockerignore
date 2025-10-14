@@ -35,6 +35,7 @@ dist
 tmp
 temp
 *.log
+.backend-hash.json
 
 # ==========================================
 # 📦 PACKAGE MANAGER FILES

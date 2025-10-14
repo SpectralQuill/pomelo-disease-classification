@@ -81,6 +81,7 @@ pytestdebug.log
 .idea/
 .vscode/
 *.sqlite3
+.backend-hash.json
 
 # ==========================================
 # 🐳 DOCKER / CONTAINERS

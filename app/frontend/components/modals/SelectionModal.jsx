@@ -1,57 +1,97 @@
-import {View, Text, StyleSheet, Image, Modal} from 'react-native';
-import { Button } from 'react-native-paper';
+import { View, Text, StyleSheet, Image, Modal } from 'react-native';
+import { Button, IconButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import theme from '../../theme/theme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-const SelectionModal = ({isVisible}) => {
+const SelectionModal = ({ isVisible, onClose }) => {
     const navigation = useNavigation();
 
     return (
-        <Modal animationType='slide' visible={isVisible}>
-            <View style={{backgroundColor: "#eeeeeeff", alignItems: "center", height: 250,justifyContent: "center", borderRadius: 10,
-                paddingBottom: 10, paddingTop: 10, paddingRight: 30, paddingLeft: 30,
-            }}>
-                <Button
-                    mode="contained"
-                    style={{
-                        width: "100%",
-                        backgroundColor: theme.colors.primary,
-                    }}
-                    contentStyle={{
-                        height: 60,
-                        justifyContent: "center",
-                    }}
-                    onPress={() => navigation.navigate("Scanner")}
-                    >
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <MaterialIcons name="photo-camera" color="#fff" size={26} />
-                        <Text style={{ color: "#fff", marginLeft: 8, fontSize: 20}}>Scan from Camera</Text>
-                    </View>
-                </Button>
+        <Modal
+            animationType='slide'
+            transparent={true}
+            visible={isVisible}
+        >
+            <View style={styles.modalBackground}>
+                <View style={styles.modalContainer}>
+                    <Text style={{ paddingBottom: 20, textAlign: 'left', alignSelf: 'flex-start', fontSize: 18 }}>Choose an action</Text>
 
-                <Text style={{alignItems: "center", marginBottom: 20, marginTop: 20, fontSize: 20}}>or</Text>
-                
-                <Button
-                    mode="contained"
-                    style={{
-                        width: "100%",
-                        backgroundColor: theme.colors.primary,
-                    }}
-                    contentStyle={{
-                        height: 60,
-                        justifyContent: "center",
-                    }}
-                    onPress={() => navigation.navigate("Gallery")}
+                    <Button
+                        mode="contained"
+                        style={styles.button}
+                        contentStyle={styles.buttonContent}
+                        onPress={() => navigation.navigate("Scanner")}
                     >
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <MaterialIcons name="photo-library" color="#fff" size={26} />
-                        <Text style={{ color: "#fff", marginLeft: 8, fontSize: 20 }}>Open from Gallery</Text>
-                    </View>
-                </Button>
+                        <View style={styles.row}>
+                            <MaterialIcons name="photo-camera" color="#fff" size={26} />
+                            <Text style={styles.buttonText}>Scan from Camera</Text>
+                        </View>
+                    </Button>
+
+                    <Button
+                        mode="contained"
+                        style={styles.button}
+                        contentStyle={styles.buttonContent}
+                        onPress={() => navigation.navigate("Picker")}
+                    >
+                        <View style={styles.row}>
+                            <MaterialIcons name="photo-library" color="#fff" size={26} />
+                            <Text style={styles.buttonText}>Open from Gallery</Text>
+                        </View>
+                    </Button>
+
+                    <Button
+                        mode="contained"
+                        style={styles.button}
+                        contentStyle={styles.buttonContent}
+                        onPress={onClose}
+                    >
+                        <View style={styles.row}>
+                            <MaterialIcons name="close" color="#fff" size={26} />
+                            <Text style={styles.buttonText}>Cancel</Text>
+                        </View>
+                    </Button>
+                </View>
             </View>
-      </Modal>
+        </Modal>
     );
 }
+
+const styles = StyleSheet.create({
+    modalBackground: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContainer: {
+        backgroundColor: '#eeeeee',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 10,
+        padding: 30,
+        width: '85%',
+    },
+    button: {
+        width: '100%',
+        backgroundColor: theme.colors.primary,
+        marginBottom: 10,
+        marginTop: 10,
+    },
+    buttonContent: {
+        height: 60,
+        justifyContent: 'center',
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    buttonText: {
+        color: '#fff',
+        marginLeft: 8,
+        fontSize: 20,
+    },
+});
 
 export default SelectionModal;

@@ -1,92 +1,66 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Button } from 'react-native';
+import { StyleSheet, Text, View, Button, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Icon, IconButton } from "react-native-paper";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { appStyle } from '../theme/style';
+import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from 'expo-image-picker';
 
-export default function ScannerScreen({ navigation }) {
-  const [permission, requestPermission] = useCameraPermissions();
-  const [cameraFacing, setCameraFacing] = useState("back");
-  const [flashMode, setFlashMode] = useState('off');
-  const [flashModeIcon, setFlashModeIcon] = useState('flash');
-  const cameraRef = useRef(null);
+const ScannerScreen = () => {
+  const navigation = useNavigation();
 
-  if (!permission) {
-    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Requesting permissions...</Text>
-    </View>;
-  }
-
-  if (!permission.granted) {
-    return (
-      <View style={styles.container}>
-        <Text>No access to camera</Text>
-        <Button onPress={requestPermission} title="Grant Permission" />
-      </View>
-    );
-  }
+  useEffect(() => {
+    takePicture();
+  }, []);
 
   const takePicture = async () => {
-    if (cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync();
-      console.log('Captured photo:', photo.uri);
-      navigation.navigate('Result', { photoUri: photo.uri });
+    try {
+      console.log('Opening camera...');
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert('Permission required', 'Sorry, we need camera permissions to make this work!');
+        return;
+      }
+      const cameraResult = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      console.log('Camera result:', cameraResult);
+
+      if (!cameraResult.canceled && cameraResult.assets && cameraResult.assets.length > 0) {
+        const photoUri = cameraResult.assets[0].uri;
+        console.log('Photo taken:', photoUri);
+        navigation.navigate('Result', { photoUri });
+      } else {
+        console.log('No photos taken');
+        navigation.goBack();
+      }
     }
-  };
-
-  const handleCameraSwitching = () => {
-    setCameraFacing((prev) => (prev === "front" ? "back" : "front"));
-  };
-
-  const handleToggleFlash = () => {
-    setFlashMode((prev) => {
-      if (prev === 'off') return 'on';
-      if (prev === 'on') return 'auto';
-      return 'off';
-    });
-    setFlashModeIcon((prev) => {
-      if (prev === 'flash-off') return 'flash';
-      if (prev === 'flash') return 'flash-auto';
-      return 'flash-off';
-    })
-  }
-
-  return (
-    <View style={appStyle.container}>
-      <CameraView ref={cameraRef} style={appStyle.camera_container} facing={cameraFacing} flash={flashMode} />
-      <View style={appStyle.button_container}>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <IconButton
-            icon={flashModeIcon}
-            iconColor='white'
-            size={30}
-            onPress={handleToggleFlash}
-          />
-        </View>
-
-        <View style={{ flex: 1, alignItems: 'center' }}>
-
-          <IconButton
-            icon="camera"
-            containerColor="green"
-            iconColor="white"
-            size={60}
-
-            onPress={takePicture} />
-        </View>
-
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <IconButton
-            icon={() => (
-              <MaterialIcons name='cameraswitch' size={28} color={'#fff'} />
-            )}
-            iconColor="white"
-            size={25}
-            onPress={handleCameraSwitching}
-          />
-        </View>
+    catch (error) {
+      Alert.alert('Error', 'Failed to take photo');
+      console.error('Camera error:', error);
+    }
+    return (
+      <View style={[appStyle.container, styles.center]}>
+        <Text style={styles.text}>Opening camera...</Text>
       </View>
-    </View>
-  );
+    );
+  };
 }
+
+const styles = StyleSheet.create({
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  text: {
+    fontSize: 16,
+    color: '#555',
+  },
+});
+
+export default ScannerScreen;

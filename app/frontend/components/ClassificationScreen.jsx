@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import ClassificationService from '../services/classificationService';
+import classificationService from '../services/classificationService';
 
 const ClassificationScreen = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -26,7 +26,7 @@ const ClassificationScreen = () => {
   const checkBackendStatus = async () => {
     try {
       setBackendStatus('checking');
-      const status = await ClassificationService.healthCheck();
+      const status = await classificationService.healthCheck();
       setBackendStatus('connected');
       console.log('Backend status:', status);
     } catch (error) {
@@ -37,31 +37,31 @@ const ClassificationScreen = () => {
 
   const pickImage = async () => {
     try {
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        
-        if (!permissionResult.granted) {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
         Alert.alert('Permission required', 'Sorry, we need camera roll permissions!');
         return;
-        }
+      }
 
-        const pickerResult = await ImagePicker.launchImageLibraryAsync({
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
-        });
+      });
 
-        console.log('Picker result:', pickerResult);
+      console.log('Picker result:', pickerResult);
 
-        if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+      if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
         const selectedAsset = pickerResult.assets[0];
         console.log('Selected image URI:', selectedAsset.uri);
         setSelectedImage(selectedAsset.uri);
         setResult(null);
-        }
+      }
     } catch (error) {
-        console.error('Image picker error:', error);
-        Alert.alert('Error', 'Failed to pick image');
+      console.error('Image picker error:', error);
+      Alert.alert('Error', 'Failed to pick image');
     }
   };
 
@@ -69,7 +69,7 @@ const ClassificationScreen = () => {
     try {
       console.log('Opening camera...');
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      
+
       if (!permissionResult.granted) {
         Alert.alert('Permission required', 'Sorry, we need camera permissions to make this work!');
         return;
@@ -82,7 +82,7 @@ const ClassificationScreen = () => {
       });
 
       console.log('Camera result:', cameraResult);
-      
+
       if (!cameraResult.canceled && cameraResult.assets && cameraResult.assets.length > 0) {
         setSelectedImage(cameraResult.assets[0].uri);
         setResult(null);
@@ -108,7 +108,7 @@ const ClassificationScreen = () => {
     setLoading(true);
     try {
       console.log('Starting classification...');
-      const classificationResult = await ClassificationService.classifyImage(selectedImage);
+      const classificationResult = await classificationService.classifyImage(selectedImage);
       setResult(classificationResult);
       console.log('Classification result:', classificationResult);
     } catch (error) {
@@ -146,7 +146,7 @@ const ClassificationScreen = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Text style={styles.title}>🍊 Pomelo Disease Classifier</Text>
-      
+
       {/* Backend Status */}
       <View style={styles.statusSection}>
         <View style={[styles.statusContainer, { backgroundColor: getStatusColor() }]}>
@@ -182,17 +182,17 @@ const ClassificationScreen = () => {
           <TouchableOpacity style={styles.button} onPress={pickImage}>
             <Text style={styles.buttonText}>📁 Choose from Gallery</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.button} onPress={takePhoto}>
             <Text style={styles.buttonText}>📷 Take Photo</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[
-              styles.button, 
-              styles.classifyButton, 
+              styles.button,
+              styles.classifyButton,
               (!selectedImage || backendStatus !== 'connected' || loading) && styles.buttonDisabled
-            ]} 
+            ]}
             onPress={classifyImage}
             disabled={loading || !selectedImage || backendStatus !== 'connected'}
           >
@@ -215,7 +215,7 @@ const ClassificationScreen = () => {
           <View style={styles.resultContainer}>
             <Text style={styles.resultTitle}>Prediction:</Text>
             <View style={[
-              styles.predictionCard, 
+              styles.predictionCard,
               result.predicted_class === 'Healthy' ? styles.healthyCard : styles.diseaseCard
             ]}>
               <Text style={styles.predictedClass}>
@@ -225,28 +225,28 @@ const ClassificationScreen = () => {
                 Confidence: {(result.confidence * 100).toFixed(1)}%
               </Text>
             </View>
-            
+
             {/* All predictions */}
             <Text style={styles.subTitle}>All Possibilities:</Text>
             {Object.entries(result.all_predictions)
-              .sort(([,a], [,b]) => b - a)
+              .sort(([, a], [, b]) => b - a)
               .map(([className, confidence]) => (
-              <View key={className} style={styles.predictionRow}>
-                <Text style={styles.className}>{className}</Text>
-                <View style={styles.confidenceBarContainer}>
-                  <View 
-                    style={[
-                      styles.confidenceBar, 
-                      { width: `${confidence * 95}%` },
-                      className === 'Healthy' ? styles.healthyBar : styles.diseaseBar
-                    ]} 
-                  />
-                  <Text style={styles.classConfidence}>
-                    {(confidence * 100).toFixed(1)}%
-                  </Text>
+                <View key={className} style={styles.predictionRow}>
+                  <Text style={styles.className}>{className}</Text>
+                  <View style={styles.confidenceBarContainer}>
+                    <View
+                      style={[
+                        styles.confidenceBar,
+                        { width: `${confidence * 95}%` },
+                        className === 'Healthy' ? styles.healthyBar : styles.diseaseBar
+                      ]}
+                    />
+                    <Text style={styles.classConfidence}>
+                      {(confidence * 100).toFixed(1)}%
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
           </View>
         </View>
       )}

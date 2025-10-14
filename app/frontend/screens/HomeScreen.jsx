@@ -1,13 +1,16 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Image, Alert } from 'react-native';
 import { Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import Layout from '../components/Layout';
 import theme from '../theme/theme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useServerConnection } from '../context/ServerConnectionContext';
 
 const HomeScreen = () => {
+  const { isConnected, isChecking, refreshConnection } = useServerConnection();
   const navigation = useNavigation();
+
   return (
     <Layout>
       <Text style={{ color: theme.colors.primary, fontSize: 18 }}>Scan Your Pomelo</Text>
@@ -16,6 +19,7 @@ const HomeScreen = () => {
         paddingBottom: 10, paddingTop: 10, paddingRight: 30, paddingLeft: 30,
       }}>
         <Button
+          disabled={isChecking}
           mode="contained"
           style={{
             width: "100%",
@@ -25,7 +29,7 @@ const HomeScreen = () => {
             height: 60,
             justifyContent: "center",
           }}
-          onPress={() => navigation.navigate("Scanner")}
+          onPress={isConnected ? () => navigation.navigate("Scanner") : Alert.alert('Waiting for server connection')}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <MaterialIcons name="photo-camera" color="#fff" size={26} />
@@ -36,6 +40,7 @@ const HomeScreen = () => {
         <Text style={{ alignItems: "center", marginBottom: 20, marginTop: 20, fontSize: 20 }}>or</Text>
 
         <Button
+          disabled={isChecking}
           mode="contained"
           style={{
             width: "100%",
@@ -45,7 +50,7 @@ const HomeScreen = () => {
             height: 60,
             justifyContent: "center",
           }}
-          onPress={() => navigation.navigate("Picker")}
+          onPress={isConnected ? () => navigation.navigate("Picker") : Alert.alert('Waiting for server connection')}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <MaterialIcons name="photo-library" color="#fff" size={26} />

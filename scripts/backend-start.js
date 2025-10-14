@@ -2,112 +2,125 @@
 const { execSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
-const crypto = require("crypto");
+
+// ------------------------------------------
+// 🧩 Load environment variables
+// ------------------------------------------
 require(path.resolve(__dirname, "../app/frontend/node_modules/dotenv")).config({
   path: path.resolve(__dirname, "../.env"),
 });
 
-// ---------- ENV CONFIG ----------
+// ------------------------------------------
+// 🧱 Environment variables
+// ------------------------------------------
 const imageName = process.env.DOCKER_IMAGE_NAME || "pomelo-backend";
 const containerName = process.env.DOCKER_CONTAINER_NAME || "pomelo-backend";
-const flaskPort = process.env.FLASK_PORT || 5000;
-const hostPort = process.env.HOST_PORT || 8080;
-const backendDir = path.resolve(__dirname, "../app/backend");
-const cacheFile = path.resolve(__dirname, "./.docker-cache.json");
+const flaskHost = process.env.FLASK_HOST || "0.0.0.0";
+const flaskPort = process.env.FLASK_PORT || "5000";
+const hostPort = process.env.HOST_PORT || "8080";
 
-// ---------- HELPERS ----------
-function hashFile(filePath) {
-  if (!fs.existsSync(filePath)) return null;
-  const content = fs.readFileSync(filePath);
-  return crypto.createHash("sha256").update(content).digest("hex");
-}
+// Normalize backend directory to Docker-friendly format
+const backendDir = path
+  .resolve(__dirname, "../app/backend")
+  .replace(/\\/g, "/");
 
-function readCache() {
-  if (!fs.existsSync(cacheFile)) return {};
+// ------------------------------------------
+// 🧩 Helper: Run commands safely
+// ------------------------------------------
+function runCommand(command, options = {}) {
   try {
-    return JSON.parse(fs.readFileSync(cacheFile, "utf8"));
-  } catch {
-    return {};
-  }
-}
-
-function writeCache(data) {
-  fs.writeFileSync(cacheFile, JSON.stringify(data, null, 2));
-}
-
-// ---------- MAIN ----------
-(async () => {
-  try {
-    console.log("🚀 Starting backend container...");
-
-    const reqFile = path.join(backendDir, "requirements.txt");
-    const currentHash = hashFile(reqFile);
-    const cache = readCache();
-
-    // 1️⃣ Check image existence
-    let imageExists = true;
-    try {
-      execSync(`docker image inspect ${imageName}`, { stdio: "ignore" });
-    } catch {
-      imageExists = false;
-    }
-
-    const shouldRebuild =
-      !imageExists || cache.requirementsHash !== currentHash;
-
-    if (shouldRebuild) {
-      console.log(
-        imageExists
-          ? "🔁 Requirements changed — rebuilding image..."
-          : `🛠️ Building Docker image '${imageName}'...`
-      );
-      execSync(`docker build -t ${imageName} ${backendDir}`, {
-        stdio: "inherit",
-      });
-      cache.requirementsHash = currentHash;
-      writeCache(cache);
-    } else {
-      console.log(`✅ Using cached image '${imageName}'`);
-    }
-
-    // 2️⃣ Check container existence properly
-    const checkContainerCmd = `docker ps -a --filter "name=^/${containerName}$" --format "{{.Names}}"`;
-    const containerCheck = execSync(checkContainerCmd, { encoding: "utf8" }).trim();
-    const containerExists = containerCheck === containerName;
-
-    if (!containerExists) {
-      console.log(`📦 Creating container '${containerName}'...`);
-      execSync(
-        `docker create --name ${containerName} \
-          -p ${hostPort}:${flaskPort} \
-          -v ${backendDir}:/app \
-          ${imageName}`,
-        { stdio: "inherit", shell: true }
-      );
-    } else {
-      console.log(`✅ Container '${containerName}' already exists.`);
-    }
-
-    // 3️⃣ Start container safely (auto-recreate if missing)
-    console.log(`▶️ Starting container '${containerName}' on port ${hostPort}...`);
-    try {
-      execSync(`docker start -a ${containerName}`, { stdio: "inherit" });
-    } catch (err) {
-      console.log(`⚠️ Container '${containerName}' missing — recreating...`);
-      execSync(`docker rm -f ${containerName} || true`, { stdio: "ignore", shell: true });
-      execSync(
-        `docker create --name ${containerName} \
-          -p ${hostPort}:${flaskPort} \
-          -v ${backendDir}:/app \
-          ${imageName}`,
-        { stdio: "inherit", shell: true }
-      );
-      execSync(`docker start -a ${containerName}`, { stdio: "inherit" });
-    }
-
+    console.log(`\n▶️ ${command}`);
+    execSync(command, { stdio: "inherit", shell: true, ...options });
   } catch (err) {
-    console.error("❌ Failed to start backend:");
+    console.error(`❌ Command failed: ${command}`);
     console.error(err.message);
     process.exit(1);
   }
-})();
+}
+
+// ------------------------------------------
+// 🔍 Check for Docker installation
+// ------------------------------------------
+try {
+  execSync("docker --version", { stdio: "ignore" });
+} catch {
+  console.error("❌ Docker is not installed or not in PATH.");
+  process.exit(1);
+}
+
+// ------------------------------------------
+// 🛠️ Build Docker image if missing
+// ------------------------------------------
+function ensureDockerImage() {
+  try {
+    execSync(`docker image inspect "${imageName}"`, { stdio: "ignore" });
+    console.log(`✅ Docker image '${imageName}' already exists.`);
+  } catch {
+    console.log(`🛠️ Building Docker image '${imageName}'...`);
+    runCommand(`docker build -t "${imageName}" "${backendDir}"`);
+  }
+}
+
+// ------------------------------------------
+// 🧱 Create Docker container if missing
+// ------------------------------------------
+function ensureDockerContainer() {
+  try {
+    execSync(`docker inspect "${containerName}"`, { stdio: "ignore" });
+    console.log(`✅ Container '${containerName}' already exists.`);
+  } catch {
+    console.log(`🚀 Creating new container '${containerName}'...`);
+    const createCmd = [
+      "docker create",
+      `--name "${containerName}"`,
+      `-p "${hostPort}:${flaskPort}"`,
+      `-v "${backendDir}:/app"`,
+      `-e "FLASK_RUN_HOST=${flaskHost}"`,
+      `-e "FLASK_RUN_PORT=${flaskPort}"`,
+      `-e "PYTHONUNBUFFERED=1"`,
+      `"${imageName}"`,
+    ].join(" ");
+    runCommand(createCmd);
+  }
+}
+
+// ------------------------------------------
+// ▶️ Start the container
+// ------------------------------------------
+function startDockerContainer() {
+  console.log(`▶️ Starting container '${containerName}' on port ${hostPort}...`);
+  try {
+    runCommand(`docker start -a "${containerName}"`);
+  } catch (err) {
+    console.error("❌ Failed to start backend container.");
+    console.error(err.message);
+    process.exit(1);
+  }
+}
+
+// ------------------------------------------
+// 🧼 Clean up stopped containers (optional helper)
+// ------------------------------------------
+function removeDanglingContainers() {
+  try {
+    const result = execSync(`docker ps -aq -f "status=exited" -f "ancestor=${imageName}"`, {
+      encoding: "utf8",
+    }).trim();
+    if (result) {
+      console.log("🧹 Removing exited containers related to the image...");
+      runCommand(`docker rm ${result}`);
+    }
+  } catch (_) {
+    // Safe to ignore
+  }
+}
+
+// ------------------------------------------
+// 🚦 Execution Flow
+// ------------------------------------------
+console.log("🚀 Starting backend container...");
+
+removeDanglingContainers();
+ensureDockerImage();
+ensureDockerContainer();
+startDockerContainer();

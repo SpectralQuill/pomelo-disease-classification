@@ -18,8 +18,6 @@ const containerName = process.env.DOCKER_CONTAINER_NAME || "pomelo-backend";
 const flaskHost = process.env.FLASK_HOST || "0.0.0.0";
 const flaskPort = process.env.FLASK_PORT || "5000";
 const hostPort = process.env.HOST_PORT || "8080";
-
-// Normalize backend directory to Docker-friendly format
 const backendDir = path
   .resolve(__dirname, "../app/backend")
   .replace(/\\/g, "/");

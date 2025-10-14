@@ -61,7 +61,7 @@ function writeCache(data) {
           ? "🔁 Requirements changed — rebuilding image..."
           : `🛠️ Building Docker image '${imageName}'...`
       );
-      execSync(`docker build -t ${imageName} ${backendDir}`, {
+      execSync(`docker build -t ${imageName} "${backendDir}"`, {
         stdio: "inherit",
       });
       cache.requirementsHash = currentHash;
@@ -79,9 +79,9 @@ function writeCache(data) {
       console.log(`📦 Creating container '${containerName}'...`);
       execSync(
         `docker create --name ${containerName} \
-          -p ${hostPort}:${flaskPort} \
-          -v ${backendDir}:/app \
-          ${imageName}`,
+    -p ${hostPort}:${flaskPort} \
+    -v "${backendDir.replace(/\\/g, "/")}:/app" \
+    ${imageName}`,
         { stdio: "inherit", shell: true }
       );
     } else {

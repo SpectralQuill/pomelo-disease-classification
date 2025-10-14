@@ -32,15 +32,35 @@ const ScannerScreen = () => {
       console.log('Camera result:', cameraResult);
 
       if (!cameraResult.canceled && cameraResult.assets && cameraResult.assets.length > 0) {
-        console.log('Photo taken:', cameraResult.assets[0].uri);
-        navigation.navigate('Result', { photoUri: cameraResult.assets[0].uri });
+        const photoUri = cameraResult.assets[0].uri;
+        console.log('Photo taken:', photoUri);
+        navigation.navigate('Result', { photoUri });
+      } else {
+        console.log('No photos taken');
+        navigation.goBack();
       }
     }
     catch (error) {
       Alert.alert('Error', 'Failed to take photo');
       console.error('Camera error:', error);
     }
+    return (
+      <View style={[appStyle.container, styles.center]}>
+        <Text style={styles.text}>Opening camera...</Text>
+      </View>
+    );
   };
 }
+
+const styles = StyleSheet.create({
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  text: {
+    fontSize: 16,
+    color: '#555',
+  },
+});
 
 export default ScannerScreen;

@@ -81,5 +81,5 @@ class ClassificationService {
     }
   }
 }
-
-export default new ClassificationService();
+const classificationService = new ClassificationService();
+export default classificationService;

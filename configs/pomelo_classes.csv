@@ -1,9 +1,9 @@
-﻿Name,Description,Included in Class Updater,Included in Model,Folder Name,Priority Weight
-Unlabeled,,FALSE,FALSE,unlabeled,1
-Anthracnose,,TRUE,TRUE,anthracnose,2
-Borer,,TRUE,TRUE,borer,2
-Canker,,TRUE,TRUE,canker,2
-Healthy,,TRUE,TRUE,healthy,2
-Mites,,TRUE,TRUE,mites,2
-Multiple,,TRUE,FALSE,multiple,2
-Unusable,,FALSE,FALSE,unusable,3
+﻿Name,Description,Included in Class Updater,Included in Model,Folder Name,Priority Weight,Abbreviation
+Unlabeled,,FALSE,FALSE,unlabeled,1,u
+Anthracnose,,TRUE,TRUE,anthracnose,2,a
+Borer,,TRUE,TRUE,borer,2,b
+Canker,,TRUE,TRUE,canker,2,c
+Healthy,,TRUE,TRUE,healthy,2,h
+Mites,,TRUE,TRUE,mites,2,m
+Multiple,,TRUE,FALSE,multiple,2,mu
+Unusable,,FALSE,FALSE,unusable,3,x

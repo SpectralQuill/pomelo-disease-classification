@@ -32,7 +32,7 @@ const ResultScreen = ({ route }) => {
 
   useEffect(() => {
     if (result) {
-      handlePredictionColor();
+      handlePredictionColor(result?.confidence ?? 0);
     }
   }, [result])
 
@@ -78,10 +78,10 @@ const ResultScreen = ({ route }) => {
       {loading && <LoadingOverlay />}
       {result &&
         <ScrollView contentContainerStyle={{
-          backgroundColor: "#eeeeeeff", alignItems: 'center', flex: 1, justifyContent: 'center',
-          borderRadius: 10, paddingBottom: 10, paddingTop: 10, paddingRight: 30, paddingLeft: 30, marginTop: 90,
+          alignItems: 'center', flex: 1, justifyContent: 'center',
+          paddingBottom: 10, paddingTop: 10, paddingRight: 30, paddingLeft: 30,
         }}>
-          <View>
+          <View style={{ marginTop: 90 }}>
             <View style={{ alignItems: 'center' }}>
               {photoUri && photoUri !== '' ? (
                 <ImageBackground
@@ -100,10 +100,10 @@ const ResultScreen = ({ route }) => {
           <Text style={styles.title}>Result</Text>
           <Text style={styles.result}>{result.predicted_class}</Text>
           <View style={{
-            width: '100%', height: 20, backgroundColor: confidenceColor, justifyContent: 'center',
-            alignItems: 'center', borderRadius: 10
+            width: '100%', height: 35, backgroundColor: confidenceColor, justifyContent: 'center',
+            alignItems: 'center', borderRadius: 20
           }}>
-            <Text>Confidence: {(result.confidence * 100).toFixed(1)}%</Text>
+            <Text style={styles.percentage}>Confidence: {(result.confidence * 100).toFixed(1)}%</Text>
           </View>
           <Text style={styles.description}>Description of scanned pomelo images should go here</Text>
 
@@ -141,16 +141,17 @@ const ResultScreen = ({ route }) => {
 
 
       {showSelectModal && <SelectionModal isVisible={showSelectModal} onClose={handleCloseModal}></SelectionModal>}
-    </View>
+    </View >
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  result: { fontSize: 24, fontWeight: '500', paddingBottom: 10, color: theme.colors.primary },
+  result: { fontSize: 26, fontWeight: '900', paddingBottom: 10, color: theme.colors.primary },
   image: { width: 300, height: 300, marginVertical: 10, borderRadius: 20 },
   description: { textAlign: 'justify', paddingTop: 40, paddingBottom: 40 },
+  percentage: { color: 'white', fontWeight: '700' },
   placeholderText: {
     color: '#6c757d',
     fontSize: 18,

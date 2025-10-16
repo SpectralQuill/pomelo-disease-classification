@@ -139,7 +139,7 @@ def gather_image_paths_and_labels(dataset_dir):
     labels = []
     for i, cls in enumerate(class_names):
         p = dataset_dir / cls
-        for ext in ("*.png", "*.jpg", "*.jpeg", "*.bmp"):
+        for ext in ("*.png",):
             for f in p.glob(ext):
                 filepaths.append(str(f))
                 labels.append(cls)
@@ -278,6 +278,28 @@ def predict_image(path, img_size, base_model, svm_clf, class_names, preprocess=T
 # -----------------------------
 def main(args):
     cfg = load_config(args.config)
+
+    import random
+    from PIL import Image
+    import matplotlib.pyplot as plt
+
+    dataset_dir = "C:/Users/rmanr/Documents/GitHub/pomelo-disease-classification/images/processed"
+
+    print("Sample images in dataset:")
+    for class_name in os.listdir(dataset_dir):
+        class_path = os.path.join(dataset_dir, class_name)
+        if os.path.isdir(class_path):
+            sample_files = os.listdir(class_path)[:3]  # first 3 images
+            for f in sample_files:
+                print(f"{class_name}: {f}")
+
+
+    sample_images = list(Path(cfg["dataset_dir"]).rglob("*.png"))
+    print(f"Checking sample from dataset: {random.choice(sample_images)}")
+    img = Image.open(random.choice(sample_images))
+    plt.imshow(img)
+    plt.show()
+
     np.random.seed(cfg.get("seed", 42))
     random.seed(cfg.get("seed", 42))
     tf.random.set_seed(cfg.get("seed", 42))
@@ -287,6 +309,10 @@ def main(args):
     print("Outputs will be saved to:", master_out)
 
     # gather dataset
+    print("------------------------------------------------------------")
+    print(f"📂 Dataset directory: {cfg['dataset_dir']}")
+    print("------------------------------------------------------------")
+
     df, class_names = gather_image_paths_and_labels(cfg["dataset_dir"])
     if df.empty:
         print("No images found in dataset directory. Exiting.")
@@ -312,8 +338,8 @@ def main(args):
     # Build in-memory numpy arrays (Note: you can adapt to tf.data generator if dataset is huge)
     print("Building training numpy arrays (with augmentation samples saved)...")
     X_train, y_train_labels = build_numpy_dataset(train_df, cfg["image_size"], augment=True, aug_pipeline=aug, save_samples_dir=subs["samples"])
-    X_val, y_val_labels = build_numpy_dataset(val_df, cfg["image_size"], augment=False, aug_pipeline=aug, save_samples_dir=subs["samples"])
-    X_test, y_test_labels = build_numpy_dataset(test_df, cfg["image_size"], augment=False, aug_pipeline=aug, save_samples_dir=subs["samples"])
+    X_val, y_val_labels = build_numpy_dataset(val_df, cfg["image_size"], augment=True, aug_pipeline=aug, save_samples_dir=subs["samples"])
+    X_test, y_test_labels = build_numpy_dataset(test_df, cfg["image_size"], augment=True, aug_pipeline=aug, save_samples_dir=subs["samples"])
 
     # Encode labels to ints
     label_map = class_to_idx

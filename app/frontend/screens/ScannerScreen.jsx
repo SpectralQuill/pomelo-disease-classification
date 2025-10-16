@@ -1,66 +1,66 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Button } from 'react-native';
+import { StyleSheet, Text, View, Button, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import {IconButton} from "react-native-paper";
+import { Icon, IconButton } from "react-native-paper";
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { appStyle } from '../theme/style';
+import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from 'expo-image-picker';
 
-export default function ScannerScreen({ navigation }) {
-  const [permission, requestPermission] = useCameraPermissions();
-  const [cameraFacing, setCameraFacing] = React.useState("back");
-  const cameraRef = useRef(null);
+const ScannerScreen = () => {
+  const navigation = useNavigation();
 
-  if (!permission) {
-    return <View><Text>Requesting permissions...</Text></View>;
-  }
-
-  if (!permission.granted) {
-    return (
-      <View style={styles.container}>
-        <Text>No access to camera</Text>
-        <Button onPress={requestPermission} title="Grant Permission" />
-      </View>
-    );
-  }
+  useEffect(() => {
+    takePicture();
+  }, []);
 
   const takePicture = async () => {
-    if (cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync();
-      console.log('Captured photo:', photo.uri);
-      navigation.navigate('Result', { imageUri: photo.uri });
+    try {
+      console.log('Opening camera...');
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert('Permission required', 'Sorry, we need camera permissions to make this work!');
+        return;
+      }
+      const cameraResult = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      console.log('Camera result:', cameraResult);
+
+      if (!cameraResult.canceled && cameraResult.assets && cameraResult.assets.length > 0) {
+        const photoUri = cameraResult.assets[0].uri;
+        console.log('Photo taken:', photoUri);
+        navigation.navigate('Result', { photoUri });
+      } else {
+        console.log('No photos taken');
+        navigation.goBack();
+      }
     }
-  };
-
-  const handleCameraSwitching = () => {
-    setCameraFacing((prev) => (prev === "front" ? "back" : "front"));
-  };
-
-  return (
-    <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing = {cameraFacing} />
-      <View style={styles.buttonContainer}>
-        <IconButton
-            icon="camera"
-            containerColor="green"
-            iconColor="white"
-            size={45}
-            onPress={takePicture} />
-        <IconButton
-            icon="camera-switch"
-            iconColor="white"
-            size={20}
-            onPress={handleCameraSwitching}
-        />
+    catch (error) {
+      Alert.alert('Error', 'Failed to take photo');
+      console.error('Camera error:', error);
+    }
+    return (
+      <View style={[appStyle.container, styles.center]}>
+        <Text style={styles.text}>Opening camera...</Text>
       </View>
-    </View>
-  );
+    );
+  };
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  camera: { flex: 1 },
-  buttonContainer: {
-    flexDirection: 'row',
-    position: 'absolute',
-    bottom: 40,
-    alignSelf: 'center',
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  text: {
+    fontSize: 16,
+    color: '#555',
   },
 });
+
+export default ScannerScreen;

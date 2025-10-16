@@ -4,6 +4,7 @@
   "scripts": {
     "dataset:install": "pip install -r requirements.txt",
     "dataset:start": "python main.py",
+    "dataset:class_csv_generator": "python class_csv_generator/class_csv_generator_v1_0.py",
     "dataset:image_lister": "python image_lister/image_lister_v1_0.py",
     "dataset:image_status_updater": "python image_status_updater/image_status_updater_v2_2.py",
     "dataset:image_trimmer": "python image_trimmer/image_trimmer_v1_0.py",

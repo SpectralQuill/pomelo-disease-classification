@@ -161,7 +161,6 @@ $RECYCLE.BIN/
 /media/
 /assets/uploads/
 /notebooks/
-/models/
 /weights/
 
 # ==========================================
@@ -169,10 +168,6 @@ $RECYCLE.BIN/
 # ==========================================
 /backup_files/
 /replacements.txt
-<<<<<<< HEAD
-backup_files/
-snippet.txt
-=======
 /snippet.txt
 /temp/
 /tmp/
@@ -206,4 +201,3 @@ notebook.log
 *.tgz
 *.7z
 *.bak
->>>>>>> main

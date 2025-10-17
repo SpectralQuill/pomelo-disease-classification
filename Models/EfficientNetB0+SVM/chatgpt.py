@@ -2,10 +2,13 @@
 """
 Citrus maxima (Pomelo) Disease Classification
 EfficientNet-B0 (feature extractor) + SVM (classifier) hybrid pipeline.
-Saves plots, metrics, weights, features, augmentation samples, etc.
 """
-#!/R-MAN
+
+# Force TensorFlow backend (harmless safeguard)
 import os
+os.environ["KERAS_BACKEND"] = "tensorflow"
+
+# --- Standard libraries ---
 import sys
 import argparse
 import shutil
@@ -21,23 +24,24 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 from tqdm import tqdm
 from rich.progress import track
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
-from sklearn.metrics import (confusion_matrix, classification_report,
-                             accuracy_score, precision_score, recall_score, f1_score)
+from sklearn.metrics import (
+    confusion_matrix, classification_report,
+    accuracy_score, precision_score, recall_score, f1_score
+)
 import joblib
+import cv2
 
+# --- TensorFlow / Keras (TensorFlow-integrated only) ---
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.preprocessing import image as kimage
 from tensorflow.keras.applications import EfficientNetB0
 from tensorflow.keras.applications.efficientnet import preprocess_input
-
-import cv2
 
 # -----------------------------
 # Helpers: config + paths
@@ -73,8 +77,8 @@ def load_image_to_array(path, image_size):
         arr = kimage.img_to_array(img)
 
         # If any image somehow loads with 1 channel, expand to 3
-        if arr.shape[-1] == 1:
-            arr = np.repeat(arr, 3, axis=-1)
+        if arr.shape[-1] != 3:
+            arr = np.stack((arr,) * 3, axis=-1) if arr.shape[-1] == 1 else arr[..., :3]
 
         return arr
     except Exception as e:
@@ -158,23 +162,48 @@ def create_splits(df, seed, val_frac=0.1, test_frac=0.1):
 # Feature extraction using EfficientNetB0
 # -----------------------------
 def build_finetune_model(img_size, num_classes, dropout_rate=0.4):
+    """
+    Builds an EfficientNetB0-based finetuning model that avoids the grayscale
+    weight-shape mismatch seen in Keras 3.11.x under Python 3.13 by loading
+    the correct RGB ImageNet weights manually.
+    """
     from tensorflow.keras import backend as K
-    K.clear_session()  # 🔥 Clears any previous model graph that used 1-channel input
+    from tensorflow.keras import layers, regularizers, models
+    from tensorflow.keras.applications import EfficientNetB0
+    import tensorflow as tf
 
-    base = EfficientNetB0(include_top=False, input_shape=(img_size, img_size, 3),
-                          pooling='avg', weights='imagenet')
+    # Clear any existing graph/session
+    K.clear_session()
+
+    # Build architecture (no weights yet)
+    base = EfficientNetB0(
+        include_top=False,
+        input_shape=(img_size, img_size, 3),
+        pooling="avg",
+        weights=None,        # ⛔ avoid auto-loader bug
+    )
+
+    # ✅ Manually fetch and load RGB pretrained weights
+    weights_path = tf.keras.utils.get_file(
+        "efficientnetb0_notop_rgb.h5",
+        "https://storage.googleapis.com/keras-applications/efficientnetb0_notop.h5",
+    )
+    base.load_weights(weights_path)
+
+    # Add custom classification head
     x = base.output
     x = layers.BatchNormalization()(x)
     x = layers.Dropout(dropout_rate)(x)
-    x = layers.Dense(256, kernel_regularizer=keras.regularizers.l2(0.0001))(x)
+    x = layers.Dense(256, kernel_regularizer=regularizers.l2(1e-4))(x)
     x = layers.BatchNormalization()(x)
     x = layers.Activation("swish")(x)
     x = layers.Dropout(0.3)(x)
-    x = layers.Dense(512, kernel_regularizer=keras.regularizers.l2(0.001))(x)
+    x = layers.Dense(512, kernel_regularizer=regularizers.l2(1e-3))(x)
     x = layers.BatchNormalization()(x)
     x = layers.Activation("relu")(x)
-    preds = layers.Dense(num_classes, activation='softmax')(x)
-    model = keras.models.Model(inputs=base.input, outputs=preds)
+    preds = layers.Dense(num_classes, activation="softmax")(x)
+
+    model = models.Model(inputs=base.input, outputs=preds)
     return model, base
 
 # -----------------------------
@@ -283,11 +312,9 @@ def main(args):
     from PIL import Image
     import matplotlib.pyplot as plt
 
-    dataset_dir = "C:/Users/rmanr/Documents/GitHub/pomelo-disease-classification/images/processed"
-
     print("Sample images in dataset:")
-    for class_name in os.listdir(dataset_dir):
-        class_path = os.path.join(dataset_dir, class_name)
+    for class_name in os.listdir(cfg["dataset_dir"]):
+        class_path = os.path.join(cfg["dataset_dir"], class_name)
         if os.path.isdir(class_path):
             sample_files = os.listdir(class_path)[:3]  # first 3 images
             for f in sample_files:

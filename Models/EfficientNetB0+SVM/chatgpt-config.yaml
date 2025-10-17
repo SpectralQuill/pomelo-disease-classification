@@ -1,13 +1,12 @@
-# config.yaml
-dataset_dir: "C:/Users/rmanr/Documents/GitHub/pomelo-disease-classification/images/processed"        # path to the folder with subfolders Anthracnose, Borer, Canker, Mite, Healthy
-output_dir: "C:/Users/rmanr/Documents/GitHub/pomelo-disease-classification/Models/outputs"
+dataset_dir: "../../images/processed"
+output_dir: "../outputs"
 image_size: 448
 batch_size: 32
 epochs: 20
 fine_tune_epochs: 15
 learning_rate: 0.001
 fine_tune_learning_rate: 0.0001
-validation_split: 0.1   # fraction for val and test each after initial split (we will do 80/10/10)
+validation_split: 0.1
 random_state: 42
 svm_kernel: "rbf"
 svm_C: 1.0

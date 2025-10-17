@@ -1,8 +1,8 @@
-dataset_dir: "../../images/processed"
-output_dir: "../outputs"
-image_size: 448
+dataset_dir: "images/processed"
+output_dir: "models/outputs"
+image_size: 224
 batch_size: 32
-epochs: 3
+epochs: 5
 fine_tune_epochs: 5
 learning_rate: 0.001
 fine_tune_learning_rate: 0.0001

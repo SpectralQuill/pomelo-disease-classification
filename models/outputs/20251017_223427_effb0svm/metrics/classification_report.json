@@ -1,0 +1,45 @@
+{
+  "anthracnose": {
+    "precision": 0.6,
+    "recall": 0.6,
+    "f1-score": 0.6,
+    "support": 20.0
+  },
+  "borer": {
+    "precision": 0.7857142857142857,
+    "recall": 0.6875,
+    "f1-score": 0.7333333333333333,
+    "support": 16.0
+  },
+  "canker": {
+    "precision": 0.4,
+    "recall": 0.2222222222222222,
+    "f1-score": 0.2857142857142857,
+    "support": 18.0
+  },
+  "healthy": {
+    "precision": 0.7710843373493976,
+    "recall": 0.9411764705882353,
+    "f1-score": 0.847682119205298,
+    "support": 68.0
+  },
+  "mites": {
+    "precision": 0.8888888888888888,
+    "recall": 0.5714285714285714,
+    "f1-score": 0.6956521739130435,
+    "support": 14.0
+  },
+  "accuracy": 0.7279411764705882,
+  "macro avg": {
+    "precision": 0.6891375023905144,
+    "recall": 0.6044654528478057,
+    "f1-score": 0.632476382433192,
+    "support": 136.0
+  },
+  "weighted avg": {
+    "precision": 0.7106588820267062,
+    "recall": 0.7279411764705882,
+    "f1-score": 0.7077772427715688,
+    "support": 136.0
+  }
+}

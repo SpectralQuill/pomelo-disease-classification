@@ -11,7 +11,7 @@
     "dataset:pomelo_dataset_organizer": "python pomelo_dataset_organizer/pomelo_dataset_organizer_v2_4.py",
     "dataset:pomelo_extractor": "python pomelo_extractor/pomelo_extractor_v2_15.py",
     "dataset:preclassifier": "python preclassifier/preclassifier_v1_0.py",
-    "model:effb0svm": "python 'models/efficientnet_b0_svm/efficientnet_b0_svm.py' --config 'models/efficientnet_b0_svm/config.yaml'",
+    "model:effb0svm": "python models/efficientnet_b0_svm/efficientnet_b0_svm.py --config models/efficientnet_b0_svm/config.yaml",
     "frontend:install": "cd app/frontend && npm install",
     "frontend:start": "cd app/frontend && npm run start",
     "frontend:android": "cd app/frontend && npm run start",

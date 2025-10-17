@@ -6,13 +6,13 @@ import argparse
 from typing import List, Dict
 from dotenv import load_dotenv
 
+load_dotenv()
+
 class ClassCsvGenerator:
     CONFIG_FILE = r"configs\pomelo_classes.csv"
     IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff", ".webp"}
 
     def __init__(self, input_folder: str, input_csv: str):
-        load_dotenv()
-        
         self.input_folder = input_folder
         self.input_csv = input_csv
         self.config_rows: List[Dict[str, str]] = []

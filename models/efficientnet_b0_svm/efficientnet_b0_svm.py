@@ -9,11 +9,7 @@ import os
 os.environ["KERAS_BACKEND"] = "tensorflow"
 
 # --- Standard libraries ---
-import sys
 import argparse
-import shutil
-import time
-import math
 from datetime import datetime
 from pathlib import Path
 import yaml
@@ -40,7 +36,6 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.preprocessing import image as kimage
-from tensorflow.keras.applications import EfficientNetB0
 from tensorflow.keras.applications.efficientnet import preprocess_input
 
 # -----------------------------

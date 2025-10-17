@@ -4,6 +4,8 @@ Anthracnose,,TRUE,TRUE,anthracnose,2,a
 Borer,,TRUE,TRUE,borer,2,b
 Canker,,TRUE,TRUE,canker,2,c
 Healthy,,TRUE,TRUE,healthy,2,h
-Mites,,TRUE,TRUE,mites,2,m
+Mites,,TRUE,TRUE,mites,2,mi
+Melanose,,TRUE,TRUE,melanose,2,me
+DarkSpot,,TRUE,TRUE,darkspot,2,ds
 Multiple,,TRUE,FALSE,multiple,2,mu
 Unusable,,FALSE,FALSE,unusable,3,x

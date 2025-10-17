@@ -1,0 +1,29 @@
+{
+  "class_names": [
+    "anthracnose",
+    "borer",
+    "canker",
+    "healthy",
+    "mites"
+  ],
+  "config": {
+    "dataset_dir": "C:/Users/rmanr/Documents/GitHub/pomelo-disease-classification/images/processed",
+    "output_dir": "C:/Users/rmanr/Documents/GitHub/pomelo-disease-classification/Models/outputs",
+    "image_size": 448,
+    "batch_size": 32,
+    "epochs": 20,
+    "fine_tune_epochs": 15,
+    "learning_rate": 0.001,
+    "fine_tune_learning_rate": 0.0001,
+    "validation_split": 0.1,
+    "random_state": 42,
+    "svm_kernel": "rbf",
+    "svm_C": 1.0,
+    "svm_gamma": "scale",
+    "checkpoint_name": "efficientnetb0_finetuned_v2.keras",
+    "save_plots": true,
+    "use_gpu": true,
+    "seed": 26
+  },
+  "feature_shape": 1280
+}

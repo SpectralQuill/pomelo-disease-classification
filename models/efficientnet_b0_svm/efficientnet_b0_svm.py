@@ -51,7 +51,7 @@ def load_config(path):
         return yaml.safe_load(f)
 
 def make_output_dirs(base_out):
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S_effb0svm")
+    ts = datetime.now().strftime("effb0svm_%Y%m%d_%H%M%S")
     out = Path(base_out) / ts
     subs = {
         "plots": out / "plots",

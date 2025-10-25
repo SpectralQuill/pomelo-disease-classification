@@ -1,0 +1,89 @@
+{
+    "pomelo_diseases": [
+        {
+            "name": "Anthracnose",
+            "description": "A fungal disease (caused by Colletotrichum spp.) that infects fruit rind, leaves and twigs of pomelo, especially under extended wet/humid conditions.",
+            "symptoms": [
+                "Twig die-back and premature leaf drop on weakened trees",
+                "Dark streaks or sunken lesions on fruit rind, often with fungal spores visible",
+                "Post-harvest fruit decay or rind breakdown under storage"
+            ],
+            "recommendations": [
+                "Prune and remove infected twigs and leaves to reduce inoculum sources",
+                "Avoid prolonged leaf wetness—limit overhead irrigation during rainy periods",
+                "Apply preventive fungicide sprays, especially during wet season",
+                "Ensure good air circulation in canopy and remove dead wood/stressed trees"
+            ],
+            "source": "https://ipm.ucanr.edu/agriculture/citrus/anthracnose/"
+        },
+        {
+            "name": "Black Spot",
+            "description": "A fungal leaf and fruit spot disease that causes blemishes on fruit rind and may reduce yield or marketability of pomelo.",
+            "symptoms": [
+                "Small light yellow, orange-yellow or red-brown spots on the fruit rind that become dark brown/black over time.",
+                "Premature fruit drop or rind cracking in heavy infections."
+            ],
+            "recommendations": [
+                "Monitor orchards for early lesions around colour-break of fruit and apply fungicide if needed",
+                "Remove and destroy fallen infected leaves/fruit to reduce inoculum",
+                "Avoid excess canopy wetness and prune for better light/air penetration",
+                "Use certified clean planting material and adhere to quarantine regulations where applicable"
+            ],
+            "source": "https://www.aphis.usda.gov/plant-pests-diseases/citrus-diseases/citrus-black-spot"
+        },
+        {
+            "name": "Fruit Borer",
+            "description": "An insect pest (larvae of citrus fruit borer moth) which bores into pomelo fruit rind and flesh, causing internal damage and fruit drop.",
+            "symptoms": [
+                "Tiny holes on fruit surface often with frass or gum exudation at entrance point.",
+                "Internal tunnels or cavities in fruit flesh, resulting in rotting and early fruit drop.",
+                "Presence of caterpillar larvae inside fruit if cut open."
+            ],
+            "recommendations": [
+                "Monitor fruit and inspect for entry holes and frass (destroy infested fruits on site if detected)",
+                "Use pheromone traps or monitoring systems for adult moths (if available)",
+                "Apply insecticide treatments at early fruit development stages when larvae are susceptible",
+                "Remove fallen/infested fruits, clean tree bases and surrounding debris"
+            ],
+            "source": "https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/priority-pest-disease/citrus-fruit-borer"
+        },
+        {
+            "name": "Melanose",
+            "description": "A fungal disease (caused by Diaporthe citri) that affects leaves, twigs, and fruits of pomelo, producing raised brown or black specks and rough rind texture.",
+            "symptoms": [
+                "Small corky pustules or raised specks on leaves that may coalesce, giving a sandpaper texture",
+                "Brown raised spots on fruit that merge to form corky patches or tear-stain patterns",
+                "Infection typically occurs during humid or rainy periods, especially on young tissues"
+            ],
+            "recommendations": [
+                "Prune and remove dead wood or twigs that harbor the fungus",
+                "Apply copper-based fungicides during periods of active shoot growth or before rainy conditions",
+                "Avoid overhead irrigation to reduce leaf wetness duration",
+                "Improve orchard sanitation and air circulation to minimize humidity",
+                "Handle fruits carefully during harvest to avoid wounds that may allow secondary infection"
+            ],
+            "source": [
+                "https://edis.ifas.ufl.edu/publication/CG019",
+                "https://pubmed.ncbi.nlm.nih.gov/36222721/",
+                "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/PD-59.pdf"
+            ]
+        },
+        {
+            "name": "Mite Damage",
+            "description": "Damage caused by microscopic mites feeding on pomelo rind and leaves, producing cosmetic damage, rind roughening, bronzing or silvery patches.",
+            "symptoms": [
+                "Silvery or bronzed appearance on fruit rind when feeding occurs early; rough texture when feeding during early growth.",
+                "On mature fruits, appearance of brown stain or bronzing if mites feed later in development. ",
+                "Yellowish patches, dull or bronze discoloration on the leaves."
+            ],
+            "recommendations": [
+                "Monitor mite populations regularly especially from spring through summer",
+                "Use hand-lens and sample fruit inside canopy",
+                "Maintain canopy density and avoid over-thinning",
+                "Apply appropriate miticides when thresholds are exceeded (especially for fresh-market fruit) and rotate modes of action to avoid resistance.",
+                "Combine treatments with good horticultural practices: avoid water stress, improve tree health, remove alternate hosts or debris."
+            ],
+            "source": "https://ipm.ucanr.edu/agriculture/citrus/citrus-rust-mite-silver-mite/"
+        }
+    ]
+}

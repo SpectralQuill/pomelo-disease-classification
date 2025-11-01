@@ -14,7 +14,9 @@
                 "Apply preventive fungicide sprays, especially during wet season",
                 "Ensure good air circulation in canopy and remove dead wood/stressed trees"
             ],
-            "source": "https://ipm.ucanr.edu/agriculture/citrus/anthracnose/"
+            "source": [
+                "https://ipm.ucanr.edu/agriculture/citrus/anthracnose/"
+            ]
         },
         {
             "name": "Black Spot",
@@ -29,7 +31,9 @@
                 "Avoid excess canopy wetness and prune for better light/air penetration",
                 "Use certified clean planting material and adhere to quarantine regulations where applicable"
             ],
-            "source": "https://www.aphis.usda.gov/plant-pests-diseases/citrus-diseases/citrus-black-spot"
+            "source": [
+                "https://www.aphis.usda.gov/plant-pests-diseases/citrus-diseases/citrus-black-spot"
+            ]
         },
         {
             "name": "Fruit Borer",
@@ -45,7 +49,9 @@
                 "Apply insecticide treatments at early fruit development stages when larvae are susceptible",
                 "Remove fallen/infested fruits, clean tree bases and surrounding debris"
             ],
-            "source": "https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/priority-pest-disease/citrus-fruit-borer"
+            "source": [
+                "https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/priority-pest-disease/citrus-fruit-borer"
+            ]
         },
         {
             "name": "Melanose",
@@ -83,7 +89,9 @@
                 "Apply appropriate miticides when thresholds are exceeded (especially for fresh-market fruit) and rotate modes of action to avoid resistance.",
                 "Combine treatments with good horticultural practices: avoid water stress, improve tree health, remove alternate hosts or debris."
             ],
-            "source": "https://ipm.ucanr.edu/agriculture/citrus/citrus-rust-mite-silver-mite/"
+            "source": [
+                "https://ipm.ucanr.edu/agriculture/citrus/citrus-rust-mite-silver-mite/"
+            ]
         }
     ]
 }

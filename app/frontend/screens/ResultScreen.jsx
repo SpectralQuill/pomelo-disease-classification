@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, ScrollView, Text, StyleSheet, Image, ImageBackground, Alert } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, Image, ImageBackground, Alert, Linking } from 'react-native';
 import AppHeader from '../components/AppHeader';
 import { appStyle } from '../theme/style';
 import { useNavigation } from '@react-navigation/native';
@@ -10,7 +10,8 @@ import theme from '../theme/theme';
 import classificationService from '../services/classificationService';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { useServerConnection } from '../context/ServerConnectionContext';
-
+import diseases from '../assets/json/diseases.json';
+import SourcesModal from '../components/modals/SourcesModal';
 
 const ResultScreen = ({ route }) => {
   const { isConnected, isChecking, refreshConnection } = useServerConnection();
@@ -20,10 +21,12 @@ const ResultScreen = ({ route }) => {
   const { photoUri } = route.params || {};
   const [result, setResult] = useState(null);
   const [confidenceColor, setConfidenceColor] = useState('#6b6b6bff');
+  const [diseaseDetail, setDiseaseDetail] = useState(null);
+  const [showSymptoms, setShowSymptoms] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [showSourcesModal, setShowSourcesModal] = useState(false);
 
-  const handleCloseModal = () => {
-    setShowSelectModal(false);
-  }
+
   useEffect(() => {
     if (isConnected) {
       classifyImage();
@@ -33,6 +36,7 @@ const ResultScreen = ({ route }) => {
   useEffect(() => {
     if (result) {
       handlePredictionColor(result?.confidence ?? 0);
+      handleDiseaseDetails(result?.predicted_class);
     }
   }, [result])
 
@@ -70,6 +74,42 @@ const ResultScreen = ({ route }) => {
     setConfidenceColor('#858585ff');
   };
 
+  const handleCloseModal = () => {
+    setShowSelectModal(false);
+  }
+
+  const handleShowSymptoms = () => {
+    setShowSymptoms(!showSymptoms ? true : false);
+  }
+
+  const handleShowRecommendations = () => {
+    setShowRecommendations(!showRecommendations ? true : false);
+  }
+
+  const handleCloseSources = () => {
+    setShowSourcesModal(false);
+  }
+
+  //function to display the disease's details
+  const handleDiseaseDetails = (diseaseType) => {
+    switch (diseaseType) {
+      case "anthracnose":
+        setDiseaseDetail(diseases.pomelo_diseases[0]);
+        break;
+      case "black Spot":
+        setDiseaseDetail(diseases.pomelo_diseases[1]);
+        break;
+      case "borer":
+        setDiseaseDetail(diseases.pomelo_diseases[2]);
+        break;
+      case "mites":
+        setDiseaseDetail(diseases.pomelo_diseases[4]);
+        break;
+      default:
+        setDiseaseDetail(null);
+        break;
+    }
+  }
   //Result screen have a different layout than the rest, so it should only have the header
 
   return (
@@ -78,10 +118,10 @@ const ResultScreen = ({ route }) => {
       {loading && <LoadingOverlay />}
       {result &&
         <ScrollView contentContainerStyle={{
-          alignItems: 'center', flex: 1, justifyContent: 'center',
+          alignItems: 'center', justifyContent: 'center',
           paddingBottom: 10, paddingTop: 10, paddingRight: 30, paddingLeft: 30,
         }}>
-          <View style={{ marginTop: 90 }}>
+          <View style={{ marginTop: 10 }}>
             <View style={{ alignItems: 'center' }}>
               {photoUri && photoUri !== '' ? (
                 <ImageBackground
@@ -105,7 +145,75 @@ const ResultScreen = ({ route }) => {
           }}>
             <Text style={styles.percentage}>Confidence: {(result.confidence * 100).toFixed(1)}%</Text>
           </View>
-          <Text style={styles.description}>Description of scanned pomelo images should go here</Text>
+
+          {/*disease details section*/}
+          {diseaseDetail && (
+            <>
+              <Text style={styles.descriptionText}>{diseaseDetail?.description}</Text>
+
+              <View style={{ width: '100%', marginBottom: 30 }}>
+                <Button
+                  mode="contained"
+                  onPress={handleShowSymptoms}
+                  style={styles.headerButton}
+                  contentStyle={{ justifyContent: 'flex-start' }}
+                  labelStyle={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}
+                  icon={showSymptoms ? 'chevron-up' : 'chevron-down'}
+
+                >
+                  <Text style={styles.headerText}>Symptoms</Text>
+                </Button>
+
+                {showSymptoms && (
+                  <View style={{ marginLeft: 10, marginTop: 10 }}>
+                    {diseaseDetail.symptoms?.map((symptom, index) => (
+                      <Text key={index} style={styles.sectionsText}>
+                        • {symptom}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              <View style={{ width: '100%' }}>
+                <Button
+                  mode="text"
+                  onPress={handleShowRecommendations}
+                  style={styles.headerButton}
+                  contentStyle={{ justifyContent: 'flex-start' }}
+                  labelStyle={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}
+                  icon={showRecommendations ? 'chevron-up' : 'chevron-down'}
+                >
+                  <Text style={styles.headerText}>Recommendations</Text>
+                </Button>
+
+                {showRecommendations && (
+                  <View style={{ marginLeft: 10, marginTop: 10 }}>
+                    {diseaseDetail.recommendations?.map((recommendation, index) => (
+                      <Text key={index} style={styles.sectionsText}>
+                        • {recommendation}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              <Button
+                mode="contained"
+                style={styles.sourceButton}
+                contentStyle={{ height: 60 }} // only controls height
+                onPress={() => setShowSourcesModal(true)}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                  <Text style={{ color: '#fff', marginRight: 8, fontSize: 16, textAlignVertical: 'center' }}>
+                    Learn more about the Disease
+                  </Text>
+                  <MaterialIcons name="arrow-circle-right" color="#fff" size={24} />
+                </View>
+              </Button>
+
+            </>
+          )}
 
           {/*button containers for retry and home*/}
           <View style={{ width: '100%', height: 200, flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -136,11 +244,10 @@ const ResultScreen = ({ route }) => {
               </View>
             </Button>
           </View>
-
         </ScrollView>}
 
-
       {showSelectModal && <SelectionModal isVisible={showSelectModal} onClose={handleCloseModal}></SelectionModal>}
+      {showSourcesModal && <SourcesModal isVisible={showSourcesModal} onClose={handleCloseSources} sources={diseaseDetail?.source}></SourcesModal>}
     </View >
   );
 };
@@ -150,8 +257,29 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
   result: { fontSize: 26, fontWeight: '900', paddingBottom: 10, color: theme.colors.primary },
   image: { width: 300, height: 300, marginVertical: 10, borderRadius: 20 },
-  description: { textAlign: 'justify', paddingTop: 40, paddingBottom: 40 },
+  descriptionText: { textAlign: 'justify', paddingBottom: 40, paddingTop: 20, fontWeight: '400', fontSize: 15 },
+  sectionsText: { textAlign: 'justify', paddingBottom: 3 },
   percentage: { color: 'white', fontWeight: '700' },
+
+  headerButton: {
+    width: '100%',
+    backgroundColor: "#D3E8CF",
+    alignSelf: 'flex',
+  },
+
+  sourceButton: {
+    paddingVertical: 5,
+    marginTop: 40,
+    marginBottom: 10,
+    width: '100%',
+    backgroundColor: theme.colors.primary,
+  },
+  headerText: {
+    textAlign: 'left',
+    alignSelf: 'flex-start',
+    fontWeight: '900',
+    color: theme.colors.primary,
+  },
   placeholderText: {
     color: '#6c757d',
     fontSize: 18,

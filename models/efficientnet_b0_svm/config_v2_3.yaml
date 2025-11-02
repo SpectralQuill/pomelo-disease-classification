@@ -42,25 +42,19 @@ augmentation:
 model:
   efficientnet:
     weights_url: "https://storage.googleapis.com/keras-applications/efficientnetb0_notop.h5"
-    dropout_rate: 0.4
-    unfreeze_schedule:
-      - { unfreeze_top_n_layers: 30,  lr: 1e-5, epochs: 10 }
-      - { unfreeze_top_n_layers: 75,  lr: 5e-6, epochs: 10 }
-      - { unfreeze_top_n_layers: 237, lr: 2e-6, epochs: 10 }
-    # unfreeze_top_n_layers: 75
+    unfreeze_top_n_layers: 75
     fine_tune:
       enabled: true
-      epochs: 30
+      epochs: 40
       batch_size: 8
-      learning_rate: 1e-5
-      optimizer: "adamw"
-      weight_decay: 1e-5
-      label_smoothing: 0.1
-      cosine_decay_restarts: true
+      learning_rate: 1e-4
+      fine_tune_epochs: 25
+      fine_tune_learning_rate: 1e-5
+      optimizer: "adam"
       class_weights: "balanced"
       early_stopping:
-        monitor: "val_accuracy"
-        patience: 5
+        monitor: "val_loss"
+        patience: 6
         restore_best_weights: true
       reduce_lr:
         monitor: "val_loss"
@@ -82,7 +76,7 @@ svm:
     n_jobs: -1
     param_grid:
       # C: [0.01, 0.1, 1, 10, 100]
-      C: [1, 5, 10, 20]
+      C: [5, 10]
       # kernel: ["rbf", "linear"]
       kernel: ["rbf"]
       # gamma: ["scale", "auto", 0.001, 0.01]

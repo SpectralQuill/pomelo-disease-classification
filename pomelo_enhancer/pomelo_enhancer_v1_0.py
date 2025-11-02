@@ -1,0 +1,153 @@
+import os
+import cv2
+import numpy as np
+from PIL import Image
+from dotenv import load_dotenv
+from pathlib import Path
+from tqdm import tqdm
+
+load_dotenv()
+
+# ============================================================
+# Pomelo Image Enhancer v1.4
+# Natural color preservation + RGB-safe output
+# ============================================================
+
+def rgba_to_bgr_avg_background(image_bgra, alpha_threshold=128):
+    """Convert BGRA to BGR, replacing transparent pixels with avg BGR of non-transparent regions."""
+    bgr = image_bgra[..., :3].astype(np.float32)
+    alpha = image_bgra[..., 3].astype(np.float32) / 255.0
+    mask = alpha >= (alpha_threshold / 255.0)
+
+    if np.any(mask):
+        mean_color = bgr[mask].mean(axis=0)
+    else:
+        mean_color = np.array([127, 127, 127], dtype=np.float32)
+
+    background = np.full_like(bgr, mean_color, dtype=np.float32)
+    out = np.where(mask[..., None], bgr, background)
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
+def enhance_pomelo_image(image_bgr):
+    """Color-selective enhancement for pomelo disease differentiation."""
+    # --- Step 1: LAB-based luminance and color balance ---
+    lab = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+
+    # Stronger CLAHE for better contrast on dark vs bright patches
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    l = clahe.apply(l)
+
+    # Slight increase in chroma variance (for rusty, yellow, green differences)
+    a_mean, b_mean = np.mean(a), np.mean(b)
+    a = np.clip((a - a_mean) * 1.20 + a_mean, 0, 255).astype(np.uint8)
+    b = np.clip((b - b_mean) * 1.15 + b_mean, 0, 255).astype(np.uint8)
+
+    lab = cv2.merge((l, a, b))
+    enhanced_bgr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+    # --- Step 2: Hue-targeted enhancement (make rust & yellow more distinct) ---
+    hsv = cv2.cvtColor(enhanced_bgr, cv2.COLOR_BGR2HSV).astype(np.float32)
+    h, s, v = cv2.split(hsv)
+
+    # 0–30° hue → reddish/brown → boost saturation for anthracnose/borer
+    rust_mask = ((h < 20) | (h > 160))  # red hue range
+    s[rust_mask] *= 1.25
+    v[rust_mask] *= 1.10
+
+    # 20–50° hue → yellow-tan range → emphasize melanose and mite
+    yellow_mask = (h >= 20) & (h <= 50)
+    s[yellow_mask] *= 1.20
+    v[yellow_mask] *= 1.10
+
+    # 60–140° hue → greens → preserve healthy color balance
+    green_mask = (h >= 60) & (h <= 140)
+    s[green_mask] *= 1.05  # mild
+
+    hsv = cv2.merge((h, np.clip(s, 0, 255), np.clip(v, 0, 255)))
+    enhanced_bgr = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+
+    # --- Step 3: Unsharp mask (for small black/white spot distinction) ---
+    gaussian = cv2.GaussianBlur(enhanced_bgr, (0, 0), sigmaX=1.0)
+    enhanced_bgr = cv2.addWeighted(enhanced_bgr, 1.4, gaussian, -0.4, 0)
+
+    # --- Step 4: Gentle gamma correction ---
+    gamma = 1.1  # slightly brighter
+    enhanced_bgr = np.clip((enhanced_bgr / 255.0) ** (1 / gamma) * 255, 0, 255).astype(np.uint8)
+
+    return enhanced_bgr
+
+
+def process_image_file(input_path, output_path):
+    """Process and save a single image as RGB JPEG."""
+    image = cv2.imread(str(input_path), cv2.IMREAD_UNCHANGED)
+    if image is None:
+        print(f"[WARN] Skipping unreadable file: {input_path}")
+        return
+
+    # --- Handle RGBA → BGR conversion ---
+    if image.shape[-1] == 4:
+        image = rgba_to_bgr_avg_background(image)
+    elif image.shape[-1] == 3:
+        image = image.astype(np.uint8)
+    else:
+        print(f"[WARN] Unsupported image shape {image.shape} for {input_path}")
+        return
+
+    # --- Apply enhancement ---
+    enhanced_bgr = enhance_pomelo_image(image)
+
+    # --- Convert to RGB for model / Pillow ---
+    enhanced_rgb = cv2.cvtColor(enhanced_bgr, cv2.COLOR_BGR2RGB)
+
+    # --- Ensure output folder exists ---
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # --- Save as true RGB JPEG using Pillow ---
+    Image.fromarray(enhanced_rgb).save(output_path, quality=95, subsampling=0)
+
+
+def process_dataset(input_dir, output_dir, limit_per_folder=None):
+    """Recursively process all images from input_dir → output_dir."""
+    input_dir = Path(input_dir)
+    output_dir = Path(output_dir)
+    image_extensions = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
+
+    print(f"[INFO] Scanning for images under {input_dir}...")
+
+    folder_to_images = {}
+    for path in input_dir.rglob("*"):
+        if path.suffix.lower() in image_extensions and path.is_file():
+            folder_to_images.setdefault(path.parent, []).append(path)
+
+    total_folders = len(folder_to_images)
+    print(f"[INFO] Found {total_folders} folders with image files.")
+
+    total_images = 0
+    for folder_idx, (folder, image_paths) in enumerate(folder_to_images.items(), start=1):
+        image_paths.sort()
+        if limit_per_folder is not None:
+            image_paths = image_paths[:limit_per_folder]
+
+        total_images += len(image_paths)
+        print(f"[{folder_idx}/{total_folders}] Processing {len(image_paths)} images in: {folder}")
+
+        for input_path in tqdm(image_paths, desc=f"Folder {folder.name}", leave=False):
+            rel_path = input_path.relative_to(input_dir)
+            output_path = output_dir / rel_path
+            process_image_file(input_path, output_path)
+
+    print(f"[DONE] Processed {total_images} images across {total_folders} folders.")
+
+
+if __name__ == "__main__":
+    input_folder = os.getenv("POMELO_IMAGE_ENHANCER_INPUT_FOLDER")
+    output_folder = os.getenv("POMELO_IMAGE_ENHANCER_OUTPUT_FOLDER")
+
+    if not input_folder or not output_folder:
+        print("Error: Environment variables POMELO_IMAGE_ENHANCER_INPUT_FOLDER and POMELO_IMAGE_ENHANCER_OUTPUT_FOLDER must be set.")
+        exit(1)
+
+    limit_per_folder = None
+    process_dataset(input_folder, output_folder, limit_per_folder)

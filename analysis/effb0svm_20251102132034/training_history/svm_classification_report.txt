@@ -1,0 +1,16 @@
+              precision    recall  f1-score   support
+
+ anthracnose       0.90      0.95      0.92        19
+   blackspot       0.89      0.84      0.86        19
+       borer       0.94      0.94      0.94        18
+     healthy       0.88      0.82      0.85        17
+    melanose       0.87      0.87      0.87        31
+       mites       0.83      0.88      0.86        17
+
+    accuracy                           0.88       121
+   macro avg       0.89      0.89      0.88       121
+weighted avg       0.88      0.88      0.88       121
+
+Test accuracy: 0.8843
+Best params: {'C': 10, 'gamma': 'scale', 'kernel': 'rbf'}
+CV score: 0.8853

@@ -1,0 +1,56 @@
+# ==========================================================
+# EfficientNetB0 + SVM configuration (v1.3 optimized)
+# Target: pomelo disease classification
+# ==========================================================
+
+# ----- Dataset paths -----
+dataset_dir: "images/processed"           # base dataset with subfolders per class
+output_dir: "models/outputs"              # root for output (effb0svm_<timestamp> folders)
+
+# ----- CLAHE preprocessing -----
+clahe_clipLimit: 3.0                      # contrast enhancement strength
+clahe_tileGridSize: [8, 8]                # local region grid size
+
+# ----- Augmentation -----
+#augment_factor: 4                         # total dataset multiplier (1 = none)
+augment_factor: 2
+image_size: 224                           # image resize for EfficientNetB0
+sample_augments_count: 10
+
+# ----- Model & training -----
+pretrained_weights: "manual_rgb"          # use manual RGB EfficientNetB0 weights
+batch_size: 16
+# epochs: 20
+# fine_tune_epochs: 15
+epochs: 2
+fine_tune_epochs: 2
+learning_rate: 0.001
+fine_tune_learning_rate: 0.0001
+early_stop_patience: 5
+fine_tune_unfreeze_frac: 0.35             # unfreeze top 35% layers for fine-tune
+seed: 42
+
+# ----- TF Augmentation layers -----
+keras_random_rotation: 0.12
+keras_random_zoom: 0.12
+keras_random_translate: 0.06
+keras_random_contrast: 0.15
+
+# ----- SVM configuration -----
+enable_smote: true                        # optional oversampling
+svm_kernel: "rbf"
+svm_C: 10.0                               # higher C for stronger separation
+svm_gamma: "scale"
+
+# ----- Dataset split -----
+validation_split: 0.2
+test_split: 0.1
+
+# ----- Visualization & samples -----
+sample_predictions_count: 25              # number of images copied to prediction_samples
+save_confusion_matrix: true
+save_metrics_json: true
+
+# ----- Logging & performance -----
+save_logs: true
+save_plots: true

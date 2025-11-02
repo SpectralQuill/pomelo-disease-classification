@@ -21,12 +21,10 @@ const SelectionModal = ({ isVisible, onClose }) => {
                         mode="contained"
                         style={styles.button}
                         contentStyle={styles.buttonContent}
+                        icon={() => <MaterialIcons name="photo-camera" color="#fff" size={26} />}
                         onPress={() => navigation.navigate("Scanner")}
                     >
-                        <View style={styles.row}>
-                            <MaterialIcons name="photo-camera" color="#fff" size={26} />
-                            <Text style={styles.buttonText}>Scan from Camera</Text>
-                        </View>
+                        <Text style={styles.buttonText}>Scan from Camera</Text>
                     </Button>
 
                     <Button
@@ -34,23 +32,19 @@ const SelectionModal = ({ isVisible, onClose }) => {
                         style={styles.button}
                         contentStyle={styles.buttonContent}
                         onPress={() => navigation.navigate("Picker")}
+                        icon={() => <MaterialIcons name="photo-library" color="#fff" size={26} />}
                     >
-                        <View style={styles.row}>
-                            <MaterialIcons name="photo-library" color="#fff" size={26} />
-                            <Text style={styles.buttonText}>Open from Gallery</Text>
-                        </View>
+                        <Text style={styles.buttonText}>Open from Gallery</Text>
                     </Button>
 
                     <Button
                         mode="contained"
                         style={styles.button}
                         contentStyle={styles.buttonContent}
+                        icon={() => <MaterialIcons name="close" color="#fff" size={26} />}
                         onPress={onClose}
                     >
-                        <View style={styles.row}>
-                            <MaterialIcons name="close" color="#fff" size={26} />
-                            <Text style={styles.buttonText}>Cancel</Text>
-                        </View>
+                        <Text style={styles.buttonText}>Cancel</Text>
                     </Button>
                 </View>
             </View>

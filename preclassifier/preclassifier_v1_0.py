@@ -8,7 +8,6 @@ import argparse
 from pathlib import Path
 from dotenv import load_dotenv
 
-
 class PomeloPreclassifier:
     def __init__(self, verbose=False, dry_run=False):
         load_dotenv()
@@ -95,7 +94,6 @@ class PomeloPreclassifier:
         log_line = f"{image_name} - {', '.join(log_parts)}"
         print(log_line)
 
-        # Return top class key
         return sorted_preds[0][0]
 
     def copy_image(self, image_path, assigned_class):
@@ -123,7 +121,6 @@ class PomeloPreclassifier:
     def process_images(self):
         print(f"📂 Scanning input folder: {self.input_folder}")
         for root, dirs, files in os.walk(self.input_folder):
-            # Only go 1 subfolder deep
             rel_depth = len(Path(root).relative_to(self.input_folder).parts)
             if rel_depth > 1:
                 continue

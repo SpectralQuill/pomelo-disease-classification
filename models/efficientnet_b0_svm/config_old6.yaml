@@ -1,0 +1,124 @@
+# config.yaml - EfficientNetB0 + SVM pipeline
+general:
+  seed: 42
+  image_size: 224
+  batch_size: 16
+  num_workers: 4
+  dataset_dir: "images/enhanced"
+  augments_dir: "images/augments"
+  outputs_dir: "models/outputs"
+  timestamp_format: "%Y%m%d%H%M%S"
+
+splits:
+  train_frac: 0.75
+  val_frac: 0.15
+  test_frac: 0.10
+  stratify_by: "class"
+  random_seed: 42
+
+augmentation:
+  enable_augmentation: true
+  per_class_target: 800        # target total images per class after augmentation (or null to use balanced sampling)
+  max_aug_per_source: 8
+  albumentations:
+    random_contrast:            # if using A.RandomBrightnessContrast instead, set params here
+      enabled: true
+      limit: 0.2
+      p: 0.5
+    brightness_contrast:
+      enabled: true
+      brightness_limit: 0.3
+      contrast_limit: 0.3
+      p: 0.7
+    gaussian_blur:
+      enabled: true
+      blur_limit: 7
+      p: 0.4
+    salt_and_pepper:
+      enabled: true
+      amount: 0.005
+      p: 0.3
+    noise_scaling:
+      enabled: true
+      var_limit: 10.0
+      p: 0.05
+    rotation:
+      enabled: true
+      limit: 25
+      p: 0.5
+  keras_augment:
+    horizontal_flip: true
+    vertical_flip: true
+    rotation_range: 35
+    width_shift_range: 0.0
+    height_shift_range: 0.0
+    shear_range: 0.0
+    zoom_range: 0.0
+
+preprocessing:
+  rescale: 1./255
+  mean: null
+  std: null
+  normalize_method: "minmax" # or "imagenet" for ImageNet mean/std
+
+model:
+  efficientnet:
+    weights_url: "https://storage.googleapis.com/keras-applications/efficientnetb0_notop.h5"
+    include_top: false
+    pooling: "avg"               # or 'max'
+    base_weights: "imagenet"
+    unfreeze_top_n_layers: 30
+    fine_tune:
+      enabled: true
+      epochs: 25
+      batch_size: 16
+      learning_rate: 5e-5
+      optimizer: "adam"
+      early_stopping:
+        monitor: "val_accuracy"
+        patience: 5
+      reduce_lr:
+        monitor: "val_loss"
+        factor: 0.5
+        patience: 3
+
+feature_extraction:
+  cache_features: true
+  features_filename: "features_{split}.npz"  # will be saved in weights folder
+  pooling: "avg"
+  flatten_map: false   # if true, will flatten full feature map (note: large dim)
+
+svm:
+  scale_features: true
+  scaler: "StandardScaler"  # or MinMaxScaler
+  grid_search:
+    enabled: true
+    cv: 3
+    n_jobs: -1
+    param_grid:
+      C: [0.01, 0.1, 1, 10, 100]
+      kernel: ["rbf", "linear"]
+      gamma: ["scale", "auto", 0.001, 0.01]
+  final:
+    kernel: "rbf"
+    C: 1.0
+    gamma: "scale"
+    probability: true
+    class_weight: "balanced"
+
+analysis:
+  save_history_plot: true
+  save_confusion_matrix: true
+  save_partition_pie: true
+  save_class_distribution_before_after: true
+  results_json: "analysis/results.json"
+
+output_structure:
+  create_subfolders:
+    - analysis
+    - false_predictions
+    - weights
+
+logging:
+  level: "INFO"
+  save_logs: true

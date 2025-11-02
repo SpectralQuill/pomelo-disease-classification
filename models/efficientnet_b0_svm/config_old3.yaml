@@ -1,0 +1,26 @@
+# Enhanced config.yaml
+dataset_dir: "images/processed"
+output_dir: "models/outputs"
+
+# Increased resolution for small features
+image_size: 224
+batch_size: 16
+
+# Preprocessing
+clahe_clipLimit: 2.0
+clahe_tileGridSize: [8, 8]
+
+# Aggressive augmentation for small features
+augment_factor: 4
+sample_augments_count: 20
+
+# Model
+pretrained_weights: "manual_rgb"
+
+# SVM - Tuned for better generalization
+svm_kernel: "rbf"
+svm_C: 0.1  # More regularization
+svm_gamma: 0.0001  # Smaller gamma for larger feature space
+
+enable_smote: true
+seed: 42

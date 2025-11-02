@@ -21,6 +21,7 @@ const HomeScreen = () => {
         <Button
           disabled={isChecking}
           mode="contained"
+          icon={() => <MaterialIcons name="photo-camera" color="#fff" size={26} />}
           style={{
             width: "100%",
             backgroundColor: theme.colors.primary,
@@ -31,16 +32,14 @@ const HomeScreen = () => {
           }}
           onPress={isConnected ? () => navigation.navigate("Scanner") : Alert.alert('Waiting for server connection')}
         >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <MaterialIcons name="photo-camera" color="#fff" size={26} />
-            <Text style={{ color: "#fff", marginLeft: 8, fontSize: 20 }}>Scan from Camera</Text>
-          </View>
+          <Text style={{ color: "#fff", marginLeft: 8, fontSize: 20 }}>Scan from Camera</Text>
         </Button>
 
         <Text style={{ alignItems: "center", marginBottom: 20, marginTop: 20, fontSize: 20 }}>or</Text>
 
         <Button
           disabled={isChecking}
+          icon={() => <MaterialIcons name="photo-library" color="#fff" size={26} />}
           mode="contained"
           style={{
             width: "100%",
@@ -52,10 +51,7 @@ const HomeScreen = () => {
           }}
           onPress={isConnected ? () => navigation.navigate("Picker") : Alert.alert('Waiting for server connection')}
         >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <MaterialIcons name="photo-library" color="#fff" size={26} />
-            <Text style={{ color: "#fff", marginLeft: 8, fontSize: 20 }}>Open from Gallery</Text>
-          </View>
+          <Text style={{ color: "#fff", marginLeft: 8, fontSize: 20 }}>Open from Gallery</Text>
         </Button>
       </View>
 

@@ -56,7 +56,6 @@ def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     tf.random.set_seed(seed)
-    # os.environ (if you want deterministic TF, set additional envs externally)
 
 def image_save_with_text(dst_path: Path, pil_img: Image.Image, true_label: str, pred_label: str):
     # append labels as caption under image
@@ -77,38 +76,45 @@ def image_save_with_text(dst_path: Path, pil_img: Image.Image, true_label: str, 
     new_img.save(dst_path)
 
 # ---------------------------
+# Utility classes
+# ---------------------------
+class LoggingCallback(callbacks.Callback):
+    def __init__(self, target_model, logger, phase_name):
+        super().__init__()
+        self.target_model = target_model
+        self.logger = logger
+        self.phase_name = phase_name
+        
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        # Universal learning rate extraction
+        optimizer = self.target_model.optimizer
+        if hasattr(optimizer, 'learning_rate'):
+            lr = float(tf.keras.backend.get_value(optimizer.learning_rate))
+        elif hasattr(optimizer, 'lr'):
+            lr = float(tf.keras.backend.get_value(optimizer.lr))
+        else:
+            lr = 0.0
+            
+        self.logger.info(
+            f"{self.phase_name} - Epoch {epoch+1}: "
+            f"loss={logs.get('loss', 0):.4f}, "
+            f"accuracy={logs.get('accuracy', 0):.4f}, "
+            f"val_loss={logs.get('val_loss', 0):.4f}, "
+            f"val_accuracy={logs.get('val_accuracy', 0):.4f}, "
+            f"lr={lr:.2e}"
+        )
+
+# ---------------------------
 # Trainer class
 # ---------------------------
 class PomeloEffB0SvmTrainer:
-    def __init__(self, config_path: str):
-        # Load config
+    def __init__(self, config_path: str, base: str="effb0svm_" + now_ts()):
         with open(config_path, "r") as f:
             self.cfg = yaml.safe_load(f)
-
-        # Set seed for reproducibility
         self.seed = int(self.cfg.get("seed", 42))
         set_seed(self.seed)
-
-        # Directories
-        self.dataset_dir = Path(self.cfg["dataset_dir"]).resolve()
-        self.outputs_root = Path(self.cfg["outputs_dir"]).resolve()
-        ensure_dir(self.outputs_root)
-
-        # create run-specific output dir
-        ts = "effb0svm_" + now_ts()
-        self.output_dir = self.outputs_root / ts
-        ensure_dir(self.output_dir)
-        # create required subfolders
-        self.analysis_dir = self.output_dir / "analysis"
-        self.augments_dir = self.output_dir / "augments"
-        self.test_false_pred_dir = self.output_dir / "test_false_predictions"
-        self.validation_false_pred_dir = self.output_dir / "validation_false_predictions"
-        self.weights_dir = self.output_dir / "weights"
-        for d in [self.analysis_dir, self.augments_dir, self.test_false_pred_dir, 
-                  self.validation_false_pred_dir, self.weights_dir]:
-            ensure_dir(d)
-
-        # Logging
+        self.load_dirs(base)
         self.setup_logging()
 
         # other runtime attributes
@@ -120,6 +126,25 @@ class PomeloEffB0SvmTrainer:
         self.feature_extractor = None
 
         self.logger.info(f"Output dir: {self.output_dir}")
+    
+    def load_dirs(self, output_dir):
+        # Directories
+        self.dataset_dir = Path(self.cfg["dataset_dir"]).resolve()
+        self.outputs_root = Path(self.cfg["outputs_dir"]).resolve()
+        ensure_dir(self.outputs_root)
+
+        # create run-specific output dir
+        self.output_dir = self.outputs_root / output_dir
+        ensure_dir(self.output_dir)
+        # create required subfolders
+        self.analysis_dir = self.output_dir / "analysis"
+        self.augments_dir = self.output_dir / "augments"
+        self.test_false_pred_dir = self.output_dir / "test_false_predictions"
+        self.validation_false_pred_dir = self.output_dir / "validation_false_predictions"
+        self.weights_dir = self.output_dir / "weights"
+        for d in [self.analysis_dir, self.augments_dir, self.test_false_pred_dir, 
+                  self.validation_false_pred_dir, self.weights_dir]:
+            ensure_dir(d)
 
     # ---------------------------
     # Logging / utils
@@ -697,10 +722,10 @@ class PomeloEffB0SvmTrainer:
         """
         Build EfficientNetB0 base (notop) and classification head but we'll save the feature extractor after fine-tuning.
         """
-        # weights option: either 'imagenet' or a path in configs["base_weights"].
-        base_weights = self.cfg.get("base_weights", "imagenet")
+        # weights option: either 'imagenet' or a path in configs["self.weights_dir"].
+        self.weights_dir = self.cfg.get("self.weights_dir", "imagenet")
         input_shape = tuple(self.cfg.get("image_size", [224, 224])) + (3,)
-        base_model = EfficientNetB0(include_top=False, weights=base_weights, input_shape=input_shape)
+        base_model = EfficientNetB0(include_top=False, weights=self.weights_dir, input_shape=input_shape)
         num_classes = len(sorted(self.df_splits["class"].unique()))
         model = self.build_model_head(base_model, num_classes)
         self.logger.info(f"Built model with EfficientNetB0 base and head units {self.cfg.get('head_units', 512)}")
@@ -717,24 +742,7 @@ class PomeloEffB0SvmTrainer:
         phases = self.cfg.get("finetune_phases", [
             {"name":"phase0", "unfreeze_last_n":0, "epochs":30, "lr":1e-4, "batch_size":32},
         ])
-        # Prepare dataset loaders: use augments for train (if provided), else original train paths
         image_size = tuple(self.cfg.get("image_size", [224, 224]))
-        # function to load from a dataframe (path list) into tf.data.Dataset
-        def paths_to_dataset(paths, labels, batch_size, shuffle=False):
-            def load_and_preprocess(p, lab):
-                img = tf.io.read_file(p)
-                img = tf.image.decode_jpeg(img, channels=3)  # or decode_png if applicable
-                img = tf.image.convert_image_dtype(img, tf.float32)
-                img = tf.image.resize(img, image_size)
-                img = eff_preprocess(img * 255.0)
-                return img, lab
-
-            ds = tf.data.Dataset.from_tensor_slices((paths, labels))
-            if shuffle:
-                ds = ds.shuffle(buffer_size=len(paths), seed=self.seed)
-            ds = ds.map(load_and_preprocess, num_parallel_calls=tf.data.AUTOTUNE)
-            ds = ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
-            return ds
 
         # Determine train image paths: prefer augments folder if exists and non-empty else use original train
         train_source_dir = self.augments_dir if any(self.augments_dir.iterdir()) else None
@@ -768,9 +776,19 @@ class PomeloEffB0SvmTrainer:
         train_paths_tf = np.array(train_paths, dtype=str)
         val_paths_tf = np.array(val_paths, dtype=str)
 
+        # phase names duplication tracking
+        phase_names = ["softmax"]
+
         history_all = {}
         for phase in phases:
             name = phase.get("name", f"phase_{phase}")
+            base_name = name
+            name_index = 0
+            while name in phase_names:
+                name_index += 1
+                name = base_name + str(name_index)
+            phase_names.append(name)
+
             unfreeze_last_n = int(phase.get("unfreeze_last_n", 0))
             epochs = int(phase.get("epochs", 15))
             lr = float(phase.get("lr", 1e-4))
@@ -788,8 +806,8 @@ class PomeloEffB0SvmTrainer:
                                loss="sparse_categorical_crossentropy",
                                metrics=["accuracy"])
             # create datasets
-            ds_train = paths_to_dataset(train_paths_tf, train_y, batch_size, shuffle=True)
-            ds_val = paths_to_dataset(val_paths_tf, val_y, batch_size, shuffle=False)
+            ds_train = self.paths_to_dataset(train_paths_tf, train_y, batch_size, image_size, shuffle=True)
+            ds_val = self.paths_to_dataset(val_paths_tf, val_y, batch_size, image_size, shuffle=False)
 
             # callbacks
             cb = []
@@ -800,33 +818,7 @@ class PomeloEffB0SvmTrainer:
             ckpt = callbacks.ModelCheckpoint(str(ckpt_path), monitor=monitor, save_best_only=True)
             cb.extend([es, rlr, ckpt])
 
-            class LoggingCallback(callbacks.Callback):
-                def __init__(self, logger, phase_name):
-                    super().__init__()
-                    self.logger = logger
-                    self.phase_name = phase_name
-                    
-                def on_epoch_end(self, epoch, logs=None):
-                    logs = logs or {}
-                    # Universal learning rate extraction
-                    optimizer = self.model.optimizer
-                    if hasattr(optimizer, 'learning_rate'):
-                        lr = float(tf.keras.backend.get_value(optimizer.learning_rate))
-                    elif hasattr(optimizer, 'lr'):
-                        lr = float(tf.keras.backend.get_value(optimizer.lr))
-                    else:
-                        lr = 0.0
-                        
-                    self.logger.info(
-                        f"{self.phase_name} - Epoch {epoch+1}: "
-                        f"loss={logs.get('loss', 0):.4f}, "
-                        f"accuracy={logs.get('accuracy', 0):.4f}, "
-                        f"val_loss={logs.get('val_loss', 0):.4f}, "
-                        f"val_accuracy={logs.get('val_accuracy', 0):.4f}, "
-                        f"lr={lr:.2e}"
-                    )
-
-            logging_cb = LoggingCallback(self.logger, name)
+            logging_cb = LoggingCallback(self.model, self.logger, name)
             cb.append(logging_cb)
 
             hist = self.model.fit(ds_train, validation_data=ds_val, epochs=epochs, callbacks=cb, verbose=1)
@@ -876,6 +868,22 @@ class PomeloEffB0SvmTrainer:
         self.logger.info(f"Training histories saved to {hist_json}")
 
         return history_all
+
+    def paths_to_dataset(self, paths, labels, batch_size, image_size, shuffle=False):
+        def load_and_preprocess(p, lab):
+            img = tf.io.read_file(p)
+            img = tf.image.decode_jpeg(img, channels=3)
+            img = tf.image.convert_image_dtype(img, tf.float32)
+            img = tf.image.resize(img, image_size)
+            img = eff_preprocess(img * 255.0)
+            return img, lab
+
+        ds = tf.data.Dataset.from_tensor_slices((paths, labels))
+        if shuffle:
+            ds = ds.shuffle(buffer_size=len(paths), seed=self.seed)
+        ds = ds.map(load_and_preprocess, num_parallel_calls=tf.data.AUTOTUNE)
+        ds = ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+        return ds
 
     def _set_model_trainability(self, unfreeze_last_n):
         """Set model trainability with precise control"""
@@ -1099,6 +1107,177 @@ class PomeloEffB0SvmTrainer:
 
         return acc, grid.best_estimator_
 
+    def train_softmax(self):
+        """
+        Continue training from an existing EfficientNetB0 model (final_model.keras)
+        using a softmax head instead of SVM. This reuses the same dataset split,
+        augmentations, and configurations from the base run.
+        """
+        self.logger.info("=" * 60)
+        self.logger.info(f"Starting SOFTMAX phase continuation from {self.output_dir}")
+
+        # Resolve base folder
+        base_model_path = self.weights_dir / "final_model.keras"
+
+        if not base_model_path.exists():
+            raise FileNotFoundError(f"Base model not found at {base_model_path}")
+
+        # Load model and label encoder
+        self.model = tf.keras.models.load_model(base_model_path)
+        le_path = self.weights_dir / "label_encoder.joblib"
+        self.label_encoder = joblib.load(le_path)
+        self.logger.info(f"Loaded base model and label encoder from {self.output_dir}")
+
+        # Use same dataset splits and augmentations as the base run
+        split_csv = self.analysis_dir / "data_splits.csv"
+        aug_csv = self.analysis_dir / "augments.csv"
+
+        if not split_csv.exists():
+            raise FileNotFoundError(f"Split CSV not found in {self.analysis_dir}")
+        self.df_splits = pd.read_csv(split_csv)
+
+        use_augments = aug_csv.exists()
+        image_size = tuple(self.cfg.get("image_size", [224, 224]))
+
+        # Determine which paths to use for training
+        if use_augments:
+            df_aug = pd.read_csv(aug_csv)
+            train_paths = df_aug["augpath"].tolist()
+            train_labels = df_aug["class"].tolist()
+        else:
+            train_df = self.df_splits[self.df_splits["set"] == "train"]
+            train_paths = train_df["filepath"].tolist()
+            train_labels = train_df["class"].tolist()
+
+        val_df = self.df_splits[self.df_splits["set"] == "val"]
+        test_df = self.df_splits[self.df_splits["set"] == "test"]
+
+        val_paths = val_df["filepath"].tolist()
+        test_paths = test_df["filepath"].tolist()
+        val_labels = val_df["class"].tolist()
+        test_labels = test_df["class"].tolist()
+
+        # Encode labels
+        train_y = self.label_encoder.transform(train_labels)
+        val_y = self.label_encoder.transform(val_labels)
+        test_y = self.label_encoder.transform(test_labels)
+
+        softmax_cfg = self.cfg.get("softmax", {})
+
+        batch_size = int(softmax_cfg.get("batch_size", 32))
+        lr = float(softmax_cfg.get("lr", 1e-4))
+        epochs = int(self.cfg.get("softmax", {}).get("epochs", 15))
+
+        ds_train = self.paths_to_dataset(train_paths, train_y, batch_size, image_size, shuffle=True)
+        ds_val = self.paths_to_dataset(val_paths, val_y, batch_size, image_size)
+        ds_test = self.paths_to_dataset(test_paths, test_y, batch_size, image_size)
+
+        # Compile and fit
+        self.model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
+            loss="sparse_categorical_crossentropy",
+            metrics=["accuracy"]
+        )
+
+        ckpt_path = self.weights_dir / "softmax_best.keras"
+        monitor = softmax_cfg.get("monitor", "val_loss")
+        earlystop_patience = int(softmax_cfg.get("earlystop_patience", 4))
+        reduce_lr_factor = float(softmax_cfg.get("reduce_lr_factor", 0.5))
+        reduce_lr_patience = int(softmax_cfg.get("reduce_lr_patience", 3))
+
+        ckpt_path = self.weights_dir / "softmax_best.keras"
+        cb = [
+            callbacks.EarlyStopping(
+                monitor=monitor,
+                patience=earlystop_patience,
+                restore_best_weights=True
+            ),
+            callbacks.ReduceLROnPlateau(
+                monitor=monitor,
+                factor=reduce_lr_factor,
+                patience=reduce_lr_patience
+            ),
+            callbacks.ModelCheckpoint(
+                str(ckpt_path),
+                monitor=monitor,
+                save_best_only=True
+            ),
+        ]
+
+        logging_cb = LoggingCallback(self.model, self.logger, "softmax")
+        cb.append(logging_cb)
+
+        hist = self.model.fit(ds_train, validation_data=ds_val, epochs=epochs, callbacks=cb, verbose=1)
+
+        # Evaluate
+        test_loss, test_acc = self.model.evaluate(ds_test, verbose=1)
+        self.logger.info(f"Softmax test accuracy: {test_acc:.4f}, loss: {test_loss:.4f}")
+
+        preds = np.argmax(self.model.predict(ds_test), axis=1)
+        cm = confusion_matrix(test_y, preds)
+        report = classification_report(test_y, preds, target_names=self.label_encoder.classes_, output_dict=True)
+        report_text = classification_report(test_y, preds, target_names=self.label_encoder.classes_)
+
+        # Save reports & metrics
+        with open(self.analysis_dir / "softmax_classification_report.txt", "w") as f:
+            f.write(report_text)
+            f.write(f"\nTest accuracy: {test_acc:.4f}\n")
+
+        with open(self.analysis_dir / "softmax_metrics.json", "w") as f:
+            json.dump({
+                "test_accuracy": float(test_acc),
+                "test_loss": float(test_loss),
+                "classification_report": report,
+                "confusion_matrix": cm.tolist()
+            }, f, indent=2)
+
+        # Confusion matrix image
+        plt.figure(figsize=(8, 6))
+        im = plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+        plt.colorbar(im)
+        tick_marks = np.arange(len(self.label_encoder.classes_))
+        plt.xticks(tick_marks, self.label_encoder.classes_, rotation=45, ha="right")
+        plt.yticks(tick_marks, self.label_encoder.classes_)
+        plt.title(f"Softmax Confusion Matrix (Acc={test_acc:.4f})")
+        plt.xlabel("Predicted")
+        plt.ylabel("True")
+        thresh = cm.max() / 2.
+        for i, j in np.ndindex(cm.shape):
+            plt.text(j, i, format(cm[i, j], 'd'),
+                     ha="center", va="center",
+                     color="white" if cm[i, j] > thresh else "black")
+        plt.tight_layout()
+        plt.savefig(self.analysis_dir / "softmax_confusion_matrix.png")
+        plt.close()
+
+        # Losses and accuracies plots
+        plt.figure()
+        plt.plot(hist.history.get("loss", []), label="train_loss")
+        plt.plot(hist.history.get("val_loss", []), label="val_loss")
+        plt.title("Softmax Loss")
+        plt.legend()
+        plt.savefig(self.analysis_dir / "softmax_losses.png")
+        plt.close()
+
+        plt.figure()
+        plt.plot(hist.history.get("accuracy", []), label="train_accuracy")
+        plt.plot(hist.history.get("val_accuracy", []), label="val_accuracy")
+        plt.title("Softmax Accuracy")
+        plt.legend()
+        plt.savefig(self.analysis_dir / "softmax_accuracies.png")
+        plt.close()
+
+        # Update training history
+        hist_json = self.analysis_dir / "training_history.json"
+        try:
+            existing = json.load(open(hist_json))
+        except Exception:
+            existing = {}
+        existing["softmax_phase"] = hist.history
+        json.dump(existing, open(hist_json, "w"), indent=2)
+
+        self.logger.info("Softmax phase completed and results saved.")
+
     def _save_false_predictions(self, df_split, y_true, y_pred, paths, output_dir, split_name):
         """Save false predictions to specified directory"""
         false_indices = np.where(y_true != y_pred)[0]
@@ -1134,7 +1313,14 @@ class PomeloEffB0SvmTrainer:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True, help="Path to config YAML")
+    parser.add_argument("--base", type=str, default=None,
+                        help="If given, load existing base folder under outputs_dir and train softmax phase from there.")
     args = parser.parse_args()
+    output_dir = args.base if args.base else ("effb0svm_" + now_ts())
 
-    trainer = PomeloEffB0SvmTrainer(args.config)
-    trainer.run()
+    trainer = PomeloEffB0SvmTrainer(args.config, output_dir)
+
+    if args.base:
+        trainer.train_softmax()
+    else:
+        trainer.run()

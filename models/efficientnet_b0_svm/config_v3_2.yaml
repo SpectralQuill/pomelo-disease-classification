@@ -82,3 +82,13 @@ svm:
   cv: 5
   n_jobs: -1
   svm_feature_selection: true
+
+# Softmax settings
+softmax:
+  lr: 1e-5
+  batch_size: 16
+  epochs: 15
+  earlystop_patience: 3
+  reduce_lr_factor: 0.5
+  reduce_lr_patience: 2
+  monitor: "val_loss"

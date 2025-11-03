@@ -723,9 +723,9 @@ class PomeloEffB0SvmTrainer:
         Build EfficientNetB0 base (notop) and classification head but we'll save the feature extractor after fine-tuning.
         """
         # weights option: either 'imagenet' or a path in configs["self.weights_dir"].
-        self.weights_dir = self.cfg.get("self.weights_dir", "imagenet")
+        pretrained = self.cfg.get("base_weights", "imagenet")
         input_shape = tuple(self.cfg.get("image_size", [224, 224])) + (3,)
-        base_model = EfficientNetB0(include_top=False, weights=self.weights_dir, input_shape=input_shape)
+        base_model = EfficientNetB0(include_top=False, weights=pretrained, input_shape=input_shape)
         num_classes = len(sorted(self.df_splits["class"].unique()))
         model = self.build_model_head(base_model, num_classes)
         self.logger.info(f"Built model with EfficientNetB0 base and head units {self.cfg.get('head_units', 512)}")

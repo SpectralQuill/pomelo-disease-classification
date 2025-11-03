@@ -34,7 +34,8 @@ augmentations:
   blur_p: 0.1
 
 # model base weights (use 'imagenet' or path to weights file)
-base_weights: "models/base/efficientnetb0_notop.h5"
+# base_weights: "models/base/efficientnetb0_notop.h5"
+base_weights: "models/base/mobilenetv2_notop.h5"
 
 # classification head
 head_units: 512
@@ -81,7 +82,7 @@ svm:
     gamma: ["scale", "auto", 0.001, 0.01]
   cv: 5
   n_jobs: -1
-  svm_feature_selection: true
+  feature_selection: true
 
 # Softmax settings
 softmax:
@@ -92,3 +93,4 @@ softmax:
   reduce_lr_factor: 0.5
   reduce_lr_patience: 2
   monitor: "val_loss"
+  feature_selection: true

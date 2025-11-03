@@ -33,10 +33,6 @@ augmentations:
   blur: false
   blur_p: 0.1
 
-# model base weights (use 'imagenet' or path to weights file)
-# base_weights: "models/base/efficientnetb0_notop.h5"
-base_weights: "models/base/mobilenetv2_notop.h5"
-
 # classification head
 head_units: 512
 dropout: 0.5

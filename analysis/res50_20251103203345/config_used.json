@@ -1,0 +1,102 @@
+{
+  "seed": 42,
+  "dataset_dir": "images/enhanced",
+  "outputs_dir": "models/outputs",
+  "val_pct": 0.15,
+  "test_pct": 0.1,
+  "target_images_per_class": 1000,
+  "max_augmentation_factor": 6,
+  "image_size": [
+    224,
+    224
+  ],
+  "augmentations": {
+    "random_rotate": true,
+    "rotate_limit": 60,
+    "rotate_p": 0.7,
+    "flip": true,
+    "hflip_p": 0.5,
+    "vflip_p": 0.5,
+    "brightness_contrast": true,
+    "brightness_p": 0.5,
+    "hue_sat": true,
+    "hsv_p": 0.3,
+    "rgb_shift": true,
+    "rgb_p": 0.2,
+    "gamma": true,
+    "gamma_p": 0.2,
+    "blur": false,
+    "blur_p": 0.1
+  },
+  "head_units": 512,
+  "dropout": 0.5,
+  "l2": "1e-3",
+  "finetune_phases": [
+    {
+      "name": "warmup",
+      "unfreeze_last_n": 0,
+      "epochs": 15,
+      "lr": "1e-3",
+      "monitor": "val_accuracy",
+      "batch_size": 16,
+      "earlystop_patience": 8,
+      "reduce_lr_factor": 0.5,
+      "reduce_lr_patience": 4
+    },
+    {
+      "name": "main_training",
+      "unfreeze_last_n": 30,
+      "epochs": 30,
+      "lr": "1e-4",
+      "monitor": "val_accuracy",
+      "batch_size": 16,
+      "earlystop_patience": 6,
+      "reduce_lr_factor": 0.3,
+      "reduce_lr_patience": 4
+    },
+    {
+      "name": "fine_tune",
+      "unfreeze_last_n": 80,
+      "epochs": 20,
+      "lr": "5e-5",
+      "monitor": "val_loss",
+      "batch_size": 8,
+      "earlystop_patience": 5,
+      "reduce_lr_factor": 0.2,
+      "reduce_lr_patience": 3
+    }
+  ],
+  "svm": {
+    "class_weight": "balanced",
+    "param_grid": {
+      "C": [
+        0.1,
+        1,
+        10
+      ],
+      "kernel": [
+        "linear",
+        "rbf"
+      ],
+      "gamma": [
+        "scale",
+        "auto",
+        0.001,
+        0.01
+      ]
+    },
+    "cv": 5,
+    "n_jobs": -1,
+    "feature_selection": true
+  },
+  "softmax": {
+    "lr": "1e-5",
+    "batch_size": 16,
+    "epochs": 15,
+    "earlystop_patience": 3,
+    "reduce_lr_factor": 0.5,
+    "reduce_lr_patience": 2,
+    "monitor": "val_loss",
+    "feature_selection": true
+  }
+}

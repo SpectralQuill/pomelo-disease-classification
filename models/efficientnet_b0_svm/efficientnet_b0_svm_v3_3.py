@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 pomelo_effb0_svm_trainer.py
-Object-oriented trainer: PomeloEffB0SvmTrainer
+Object-oriented trainer: PomeloDiseaseTrainer
 
 Usage:
     python pomelo_effb0_svm_trainer.py --config config.yaml
@@ -40,7 +40,7 @@ import joblib
 # tensorflow / keras
 import tensorflow as tf
 from tensorflow.keras import layers, models, regularizers, callbacks
-from tensorflow.keras.applications import EfficientNetB0
+from tensorflow.keras.applications import EfficientNetB0, efficientnet, MobileNetV2, mobilenet_v2
 from tensorflow.keras.applications.efficientnet import preprocess_input as eff_preprocess
 
 # ---------------------------
@@ -108,8 +108,8 @@ class LoggingCallback(callbacks.Callback):
 # ---------------------------
 # Trainer class
 # ---------------------------
-class PomeloEffB0SvmTrainer:
-    def __init__(self, config_path: str, base: str="effb0svm_" + now_ts()):
+class PomeloDiseaseTrainer:
+    def __init__(self, config_path: str, base: str="effb0svm"):
         with open(config_path, "r") as f:
             self.cfg = yaml.safe_load(f)
         self.seed = int(self.cfg.get("seed", 42))
@@ -127,7 +127,21 @@ class PomeloEffB0SvmTrainer:
 
         self.logger.info(f"Output dir: {self.output_dir}")
     
-    def load_dirs(self, output_dir):
+    def load_dirs(self, base: str="effb0svm"):
+        # Setting output dir and base model
+        self.base = base
+        output_dir = ""
+        self.base_model_folder = None
+        if base == "effb0svm" or base == "mobv2":
+            output_dir = base
+        elif base.startswith("effb0svm"):
+            output_dir = "effb0soft"
+            self.base_model_folder = base
+        elif base.startswith("effb0soft"):
+            output_dir = "effb0svm"
+            self.base_model_folder = base
+        output_dir += "_" + now_ts()
+
         # Directories
         self.dataset_dir = Path(self.cfg["dataset_dir"]).resolve()
         self.outputs_root = Path(self.cfg["outputs_dir"]).resolve()
@@ -145,6 +159,10 @@ class PomeloEffB0SvmTrainer:
         for d in [self.analysis_dir, self.augments_dir, self.test_false_pred_dir, 
                   self.validation_false_pred_dir, self.weights_dir]:
             ensure_dir(d)
+        
+        if base.startswith("effb0svm") or base.startswith("effb0soft"):
+            with open(self.analysis_dir / "base.json", "w") as f:
+                json.dump({"base": base}, f, indent=2)
 
     # ---------------------------
     # Logging / utils
@@ -160,7 +178,7 @@ class PomeloEffB0SvmTrainer:
                 logging.StreamHandler(sys.stdout),
             ],
         )
-        self.logger = logging.getLogger("PomeloEffB0SvmTrainer")
+        self.logger = logging.getLogger("PomeloDiseaseTrainer")
         # dump config for record
         cfg_dump = self.output_dir / "config_used.json"
         with open(cfg_dump, "w") as f:
@@ -451,7 +469,7 @@ class PomeloEffB0SvmTrainer:
         total = np.sum(current_counts)
         mean_count = np.mean(current_counts)
         min_count, max_count = np.min(current_counts), np.max(current_counts)
-
+    
         # Adaptive beta based on dataset size (Cui et al. 2019 recommendation)
         beta = 1 - 1 / (mean_count + 1e-8)
         effective_numbers = (1 - np.power(beta, current_counts)) / (1 - beta)
@@ -720,17 +738,44 @@ class PomeloEffB0SvmTrainer:
 
     def prepare_feature_extractor(self):
         """
-        Build EfficientNetB0 base (notop) and classification head but we'll save the feature extractor after fine-tuning.
+        Build base CNN (EfficientNetB0 or MobileNetV2 depending on self.base)
+        and attach classification head. Saves a feature extractor after fine-tuning.
         """
-        # weights option: either 'imagenet' or a path in configs["self.weights_dir"].
-        pretrained = self.cfg.get("base_weights", "imagenet")
+
+        # Determine architecture type
+        base_key = self.base.lower()
         input_shape = tuple(self.cfg.get("image_size", [224, 224])) + (3,)
-        base_model = EfficientNetB0(include_top=False, weights=pretrained, input_shape=input_shape)
         num_classes = len(sorted(self.df_splits["class"].unique()))
+        pretrained = self.cfg.get("base_weights", "imagenet")
+
+        # Select backbone
+        if base_key.startswith("effb0"):
+            base_model = EfficientNetB0(include_top=False, weights=pretrained, input_shape=input_shape)
+            preprocess_func = efficientnet.preprocess_input
+            base_name = "EfficientNetB0"
+        elif base_key.startswith("mobv2"):
+            base_model = MobileNetV2(include_top=False, weights=pretrained, input_shape=input_shape)
+            preprocess_func = mobilenet_v2.preprocess_input
+            base_name = "MobileNetV2"
+
+        # Save preprocess function for later use
+        self.preprocess_func = preprocess_func
+
+        # Build classifier head
         model = self.build_model_head(base_model, num_classes)
-        self.logger.info(f"Built model with EfficientNetB0 base and head units {self.cfg.get('head_units', 512)}")
+        self.logger.info(f"✅ Built model with {base_name} base and head units {self.cfg.get('head_units', 512)}")
+
+        # Create feature extractor (output before classification head)
+        if "gap" in [l.name for l in model.layers]:
+            gap_layer = "gap"
+        else:
+            # fallback search for global average pooling
+            gap_candidates = [l.name for l in model.layers if "global_average" in l.name or "avg_pool" in l.name]
+            gap_layer = gap_candidates[-1] if gap_candidates else model.layers[-2].name
+
         self.model = model
-        self.feature_extractor = models.Model(inputs=model.input, outputs=model.get_layer("gap").output)
+        self.feature_extractor = models.Model(inputs=model.input, outputs=model.get_layer(gap_layer).output)
+
         return model
 
     def train_finetune_phases(self):
@@ -977,10 +1022,10 @@ class PomeloEffB0SvmTrainer:
 
         # Feature selection
         selector = None
-        if svm_config.get("svm_feature_selection", False):
+        if svm_config.get("feature_selection", False):
             selector = SelectFromModel(LinearSVC(C=0.01, penalty="l1", dual=False, max_iter=10000), max_features=500)
             X_trval_scaled = selector.fit_transform(X_trval_scaled, y_trval)
-            X_val_scaled = selector.transform(X_val_scaled)  # Apply same selection to validation
+            X_val_scaled = selector.transform(X_val_scaled)
             X_test_scaled = selector.transform(X_test_scaled)  # Apply same selection to test
             self.logger.info(f"Feature selection: {X_trval_scaled.shape[1]} features retained.")
         
@@ -1113,27 +1158,29 @@ class PomeloEffB0SvmTrainer:
         using a softmax head instead of SVM. This reuses the same dataset split,
         augmentations, and configurations from the base run.
         """
-        self.logger.info("=" * 60)
         self.logger.info(f"Starting SOFTMAX phase continuation from {self.output_dir}")
 
+        analysis_dir = (self.base_model_folder if self.base_model_folder else self.output_dir) / "analysis"
+        weights_dir = (self.base_model_folder if self.base_model_folder else self.output_dir) / "weights"
+
         # Resolve base folder
-        base_model_path = self.weights_dir / "final_model.keras"
+        base_model_path = weights_dir / "final_model.keras"
 
         if not base_model_path.exists():
             raise FileNotFoundError(f"Base model not found at {base_model_path}")
 
         # Load model and label encoder
         self.model = tf.keras.models.load_model(base_model_path)
-        le_path = self.weights_dir / "label_encoder.joblib"
+        le_path = weights_dir / "label_encoder.joblib"
         self.label_encoder = joblib.load(le_path)
         self.logger.info(f"Loaded base model and label encoder from {self.output_dir}")
 
         # Use same dataset splits and augmentations as the base run
-        split_csv = self.analysis_dir / "data_splits.csv"
-        aug_csv = self.analysis_dir / "augments.csv"
+        split_csv = analysis_dir / "data_splits.csv"
+        aug_csv = analysis_dir / "augments.csv"
 
         if not split_csv.exists():
-            raise FileNotFoundError(f"Split CSV not found in {self.analysis_dir}")
+            raise FileNotFoundError(f"Split CSV not found in {analysis_dir}")
         self.df_splits = pd.read_csv(split_csv)
 
         use_augments = aug_csv.exists()
@@ -1276,8 +1323,6 @@ class PomeloEffB0SvmTrainer:
         existing["softmax_phase"] = hist.history
         json.dump(existing, open(hist_json, "w"), indent=2)
 
-        self.logger.info("Softmax phase completed and results saved.")
-
     def _save_false_predictions(self, df_split, y_true, y_pred, paths, output_dir, split_name):
         """Save false predictions to specified directory"""
         false_indices = np.where(y_true != y_pred)[0]
@@ -1298,14 +1343,25 @@ class PomeloEffB0SvmTrainer:
     # Main orchestration
     # ---------------------------
     def run(self):
-        self.logger.info("Starting PomeloEffB0SvmTrainer...")
-        self.discover_dataset()
-        self.create_splits()
-        self.do_augmentations()
-        self.prepare_feature_extractor()
-        self.train_finetune_phases()
-        self.train_svm()
+        if self.base_model_folder == None:
+            self.logger.info("Starting PomeloDiseaseTrainer...")
+            self.discover_dataset()
+            self.create_splits()
+            self.do_augmentations()
+            self.prepare_feature_extractor()
+            self.train_finetune_phases()
+            if self.base.startswith("effb0svm"):
+                self.train_svm()
+            if self.base.startswith("mobv2"):
+                self.train_softmax()
+        elif self.base_model_folder.startswith("effb0svm_"):
+            self.train_softmax()
+        elif self.base_model_folder.startswith("effb0soft_"):
+            print("Not available...")
+        else:
+            raise ValueError(f"❌ Unsupported base model type: {self.base}")
         self.logger.info("Training completed successfully!")
+        
 
 # ---------------------------
 # CLI entry point
@@ -1313,14 +1369,9 @@ class PomeloEffB0SvmTrainer:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True, help="Path to config YAML")
-    parser.add_argument("--base", type=str, default=None,
-                        help="If given, load existing base folder under outputs_dir and train softmax phase from there.")
+    parser.add_argument("--base", type=str, default="effb0svm",
+                        help="Base model to train")
     args = parser.parse_args()
-    output_dir = args.base if args.base else ("effb0svm_" + now_ts())
 
-    trainer = PomeloEffB0SvmTrainer(args.config, output_dir)
-
-    if args.base:
-        trainer.train_softmax()
-    else:
-        trainer.run()
+    trainer = PomeloDiseaseTrainer(args.config, args.base)
+    trainer.run()

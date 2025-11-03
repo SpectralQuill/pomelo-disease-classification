@@ -4,7 +4,7 @@ const LoadingOverlay = () => {
     return (
         <View style={styles.overlay}>
             <View style={styles.content}>
-                <Image source={require('../assets/app-logo.png')} style={styles.logo} />
+                <Image source={require('../assets/app-logo-loading.png')} style={styles.logo} />
                 <Text style={styles.text}>Processing... Please wait</Text>
             </View>
 

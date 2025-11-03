@@ -746,14 +746,16 @@ class PomeloDiseaseTrainer:
         base_key = self.base.lower()
         input_shape = tuple(self.cfg.get("image_size", [224, 224])) + (3,)
         num_classes = len(sorted(self.df_splits["class"].unique()))
-        pretrained = self.cfg.get("base_weights", "imagenet")
+        pretrained = "models/base"
 
         # Select backbone
         if base_key.startswith("effb0"):
+            pretrained = pretrained / "efficientnetb0_notop.h5"
             base_model = EfficientNetB0(include_top=False, weights=pretrained, input_shape=input_shape)
             preprocess_func = efficientnet.preprocess_input
             base_name = "EfficientNetB0"
         elif base_key.startswith("mobv2"):
+            pretrained = pretrained / "mobilenetv2_notop.h5"
             base_model = MobileNetV2(include_top=False, weights=pretrained, input_shape=input_shape)
             preprocess_func = mobilenet_v2.preprocess_input
             base_name = "MobileNetV2"

@@ -16,6 +16,7 @@
     "model:effb0svm": "npm run dataset:pomelo_enhancer && python models/efficientnet_b0_svm/efficientnet_b0_svm_v3_3.py --config models/efficientnet_b0_svm/config_v3_3.yaml",
     "model:effb0soft": "python models/efficientnet_b0_svm/efficientnet_b0_svm_v3_3.py --config models/efficientnet_b0_svm/config_v3_3.yaml --base effb0svm_20251102132034",
     "model:mobv2": "npm run dataset:pomelo_enhancer && python models/efficientnet_b0_svm/efficientnet_b0_svm_v3_3.py --config models/efficientnet_b0_svm/config_v3_3.yaml --base mobv2",
+    "model:res50": "npm run dataset:pomelo_enhancer && python models/efficientnet_b0_svm/efficientnet_b0_svm_v3_3.py --config models/efficientnet_b0_svm/config_v3_3.yaml --base res50",
     "frontend:install": "cd app/frontend && npm install",
     "frontend:start": "cd app/frontend && npm run start",
     "frontend:android": "cd app/frontend && npm run start",

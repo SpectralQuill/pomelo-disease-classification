@@ -40,7 +40,7 @@ import joblib
 # tensorflow / keras
 import tensorflow as tf
 from tensorflow.keras import layers, models, regularizers, callbacks
-from tensorflow.keras.applications import EfficientNetB0, efficientnet, MobileNetV2, mobilenet_v2
+from tensorflow.keras.applications import EfficientNetB0, efficientnet, MobileNetV2, mobilenet_v2, ResNet50, resnet
 from tensorflow.keras.applications.efficientnet import preprocess_input as eff_preprocess
 
 # ---------------------------
@@ -132,7 +132,7 @@ class PomeloDiseaseTrainer:
         self.base = base
         output_dir = ""
         self.base_model_folder = None
-        if base == "effb0svm" or base == "mobv2":
+        if base == "effb0svm" or base == "mobv2" or base == "res50":
             output_dir = base
         elif base.startswith("effb0svm"):
             output_dir = "effb0soft"
@@ -738,7 +738,7 @@ class PomeloDiseaseTrainer:
 
     def prepare_feature_extractor(self):
         """
-        Build base CNN (EfficientNetB0 or MobileNetV2 depending on self.base)
+        Build base CNN (EfficientNetB0, MobileNetV2, or ResNet50 depending on self.base)
         and attach classification head. Saves a feature extractor after fine-tuning.
         """
 
@@ -746,19 +746,29 @@ class PomeloDiseaseTrainer:
         base_key = self.base.lower()
         input_shape = tuple(self.cfg.get("image_size", [224, 224])) + (3,)
         num_classes = len(sorted(self.df_splits["class"].unique()))
-        pretrained = "models/base"
+        pretrained_dir = Path("models/base")
 
         # Select backbone
         if base_key.startswith("effb0"):
-            pretrained = pretrained / "efficientnetb0_notop.h5"
+            pretrained = pretrained_dir / "efficientnetb0_notop.h5"
             base_model = EfficientNetB0(include_top=False, weights=pretrained, input_shape=input_shape)
             preprocess_func = efficientnet.preprocess_input
             base_name = "EfficientNetB0"
+
         elif base_key.startswith("mobv2"):
-            pretrained = pretrained / "mobilenetv2_notop.h5"
+            pretrained = pretrained_dir / "mobilenetv2_notop.h5"
             base_model = MobileNetV2(include_top=False, weights=pretrained, input_shape=input_shape)
             preprocess_func = mobilenet_v2.preprocess_input
             base_name = "MobileNetV2"
+
+        elif base_key.startswith("res50"):
+            pretrained = pretrained_dir / "resnet50_notop.h5"
+            base_model = ResNet50(include_top=False, weights=pretrained, input_shape=input_shape)
+            preprocess_func = resnet.preprocess_input
+            base_name = "ResNet50"
+
+        else:
+            raise ValueError(f"❌ Unknown base architecture: {self.base}")
 
         # Save preprocess function for later use
         self.preprocess_func = preprocess_func
@@ -1354,7 +1364,7 @@ class PomeloDiseaseTrainer:
             self.train_finetune_phases()
             if self.base.startswith("effb0svm"):
                 self.train_svm()
-            if self.base.startswith("mobv2"):
+            else:
                 self.train_softmax()
         elif self.base_model_folder.startswith("effb0svm_"):
             self.train_softmax()

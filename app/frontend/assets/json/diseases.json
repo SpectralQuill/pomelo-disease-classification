@@ -92,6 +92,17 @@
             "source": [
                 "https://ipm.ucanr.edu/agriculture/citrus/citrus-rust-mite-silver-mite/"
             ]
+        },
+        {
+            "name": "Healthy",
+            "description": "Your fruit appears to be healthy. Diseases might still form if no proper checkups are observed. Ensure proper diagnosis and treatment to reduce the chances of diseases",
+            "recommendations": [
+                "For Anthracnose: Prune infected parts, maintain good airflow, minimize leaf wetness, and apply preventive fungicides to control disease spread.",
+                "For Blackspots: Regularly monitor for early symptoms, apply fungicides when necessary, maintain orchard hygiene, improve canopy airflow, and use certified disease-free planting materials.",
+                "For Fruit Borers: Inspect and destroy infested fruits, monitor with traps, apply insecticides early, and maintain orchard cleanliness to control infestations.",
+                "For Melanose: Prune diseased wood, maintain good sanitation and airflow, avoid overhead irrigation, apply copper fungicides before rain, and handle fruits carefully to prevent infection.",
+                "For Mite Damages: Prune diseased wood, maintain good sanitation and airflow, avoid overhead irrigation, apply copper fungicides before rain, and handle fruits carefully to prevent infection."
+            ]
         }
     ]
 }

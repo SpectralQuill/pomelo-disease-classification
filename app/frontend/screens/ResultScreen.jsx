@@ -102,6 +102,8 @@ const ResultScreen = ({ route }) => {
       case "borer":
         setDiseaseDetail(diseases.pomelo_diseases[2]);
         break;
+      case "melanose":
+        setDiseaseDetail(diseases.pomelo_diseases[3]);
       case "mites":
         setDiseaseDetail(diseases.pomelo_diseases[4]);
         break;
@@ -113,8 +115,6 @@ const ResultScreen = ({ route }) => {
         break;
     }
   }
-  //Result screen have a different layout than the rest, so it should only have the header
-
   return (
     <View style={appStyle.container}>
       <AppHeader />
@@ -140,43 +140,47 @@ const ResultScreen = ({ route }) => {
               )}
             </View>
           </View>
-          <Text style={styles.title}>Result</Text>
-          <Text style={styles.result}>{result.predicted_class}</Text>
-          <View style={{
+
+          {/* <View style={{
             width: '100%', height: 35, backgroundColor: confidenceColor, justifyContent: 'center',
             alignItems: 'center', borderRadius: 20
           }}>
             <Text style={styles.percentage}>Confidence: {(result.confidence * 100).toFixed(1)}%</Text>
-          </View>
+          </View> */}
 
           {/*disease details section*/}
           {diseaseDetail && (
             <>
+              <Text style={styles.title}>Result</Text>
+              <Text style={styles.result}>{diseaseDetail?.name}</Text>
               <Text style={styles.descriptionText}>{diseaseDetail?.description}</Text>
 
-              <View style={{ width: '100%', marginBottom: 30 }}>
-                <Button
-                  mode="contained"
-                  onPress={handleShowSymptoms}
-                  style={styles.headerButton}
-                  contentStyle={{ justifyContent: 'flex-start' }}
-                  labelStyle={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}
-                  icon={showSymptoms ? 'chevron-up' : 'chevron-down'}
+              {/*Since healthy doesn't have a symptoms, why not just hide this if it was the case*/}
+              {diseaseDetail.name != "Healthy" && (
+                <View style={{ width: '100%', marginBottom: 30 }}>
+                  <Button
+                    mode="contained"
+                    onPress={handleShowSymptoms}
+                    style={styles.headerButton}
+                    contentStyle={{ justifyContent: 'flex-start' }}
+                    labelStyle={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}
+                    icon={showSymptoms ? 'chevron-up' : 'chevron-down'}
 
-                >
-                  <Text style={styles.headerText}>Symptoms</Text>
-                </Button>
+                  >
+                    <Text style={styles.headerText}>Symptoms</Text>
+                  </Button>
 
-                {showSymptoms && (
-                  <View style={{ marginLeft: 10, marginTop: 10 }}>
-                    {diseaseDetail.symptoms?.map((symptom, index) => (
-                      <Text key={index} style={styles.sectionsText}>
-                        • {symptom}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-              </View>
+                  {showSymptoms && (
+                    <View style={{ marginLeft: 10, marginTop: 10 }}>
+                      {diseaseDetail.symptoms?.map((symptom, index) => (
+                        <Text key={index} style={styles.sectionsText}>
+                          • {symptom}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
 
               <View style={{ width: '100%' }}>
                 <Button

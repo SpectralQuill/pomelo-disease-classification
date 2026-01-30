@@ -1062,9 +1062,9 @@ class PomeloDiseaseTrainer:
             "gamma": ["scale", "auto"]
         })
         
-        svm = SVC(random_state=self.seed, class_weight=class_weight)
+        svm = SVC(random_state=self.seed, class_weight=class_weight, probability=True)
         grid = GridSearchCV(
-            svm, 
+            svm,
             param_grid, 
             cv=svm_config.get("cv", 3), 
             n_jobs=svm_config.get("n_jobs", -1), 
@@ -1154,7 +1154,7 @@ class PomeloDiseaseTrainer:
                 raw_val = int(cm[i, j])
                 perc_val = cm_percent[i, j]
 
-                text = f"{raw_val}\n({perc_val:.2f}%)"
+                text = f"{perc_val:.2f}%\n({raw_val})"
 
                 # Use white text on dark squares
                 color = "white" if perc_val > 50 else "black"
@@ -1325,7 +1325,7 @@ class PomeloDiseaseTrainer:
                 raw_val = int(cm[i, j])
                 perc_val = cm_percent[i, j]
 
-                text = f"{raw_val}\n({perc_val:.2f}%)"
+                text = f"{perc_val:.2f}%\n({raw_val})"
 
                 # Use white text on dark squares
                 color = "white" if perc_val > 50 else "black"
@@ -1335,7 +1335,7 @@ class PomeloDiseaseTrainer:
                         color=color, fontsize=9)
 
         plt.tight_layout()
-        plt.savefig(self.analysis_dir / "svm_confusion_matrix.png", dpi=150, bbox_inches='tight')
+        plt.savefig(self.analysis_dir / "softmax_confusion_matrix.png", dpi=150, bbox_inches='tight')
         plt.close()
 
         # Losses and accuracies plots

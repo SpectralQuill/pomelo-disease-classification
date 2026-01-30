@@ -1016,7 +1016,7 @@ class PomeloDiseaseTrainer:
         self.logger.info("Extracting features for SVM training...")
         X_train, y_train, _ = self.extract_features_for_split(df_train)
         X_val, y_val, _ = self.extract_features_for_split(df_val)
-        X_test, y_test, test_paths = self.extract_features_for_split(df_test)
+        test_x, test_y, test_paths = self.extract_features_for_split(df_test)
 
         # combine train+val for SVM training
         X_trval = np.vstack([X_train, X_val])
@@ -1026,7 +1026,7 @@ class PomeloDiseaseTrainer:
         scaler = StandardScaler()
         X_trval_scaled = scaler.fit_transform(X_trval)
         X_val_scaled = scaler.transform(X_val)  # Transform validation set
-        X_test_scaled = scaler.transform(X_test)
+        test_x_scaled = scaler.transform(test_x)
 
         # Get class weight configuration
         svm_config = self.cfg.get("svm", {})
@@ -1038,7 +1038,7 @@ class PomeloDiseaseTrainer:
             selector = SelectFromModel(LinearSVC(C=0.01, penalty="l1", dual=False, max_iter=10000), max_features=500)
             X_trval_scaled = selector.fit_transform(X_trval_scaled, y_trval)
             X_val_scaled = selector.transform(X_val_scaled)
-            X_test_scaled = selector.transform(X_test_scaled)  # Apply same selection to test
+            test_x_scaled = selector.transform(test_x_scaled)  # Apply same selection to test
             self.logger.info(f"Feature selection: {X_trval_scaled.shape[1]} features retained.")
         
         # Calculate class weights if requested
@@ -1062,9 +1062,9 @@ class PomeloDiseaseTrainer:
             "gamma": ["scale", "auto"]
         })
         
-        svm = SVC(random_state=self.seed, class_weight=class_weight)
+        svm = SVC(random_state=self.seed, class_weight=class_weight, probability=True)
         grid = GridSearchCV(
-            svm, 
+            svm,
             param_grid, 
             cv=svm_config.get("cv", 3), 
             n_jobs=svm_config.get("n_jobs", -1), 
@@ -1103,18 +1103,24 @@ class PomeloDiseaseTrainer:
         self.logger.info(f"SVM model saved to {svm_model_path}")
 
         # evaluate on test set
-        y_pred = grid.predict(X_test_scaled)
-        acc = accuracy_score(y_test, y_pred)
-        self.logger.info(f"SVM test accuracy: {acc:.4f}")
+        pred_y = grid.predict(test_x_scaled)
+        test_acc = accuracy_score(test_y, pred_y)
+        self.logger.info(f"SVM test accuracy: {test_acc:.4f}")
 
         # Enhanced evaluation with per-class metrics
-        clf_report = classification_report(y_test, y_pred, target_names=self.label_encoder.classes_, output_dict=True)
-        clf_report_text = classification_report(y_test, y_pred, target_names=self.label_encoder.classes_)
-        cm = confusion_matrix(y_test, y_pred)
+        clf_report = classification_report(test_y, pred_y, target_names=self.label_encoder.classes_, output_dict=True)
+        clf_report_text = classification_report(test_y, pred_y, target_names=self.label_encoder.classes_)
+        cm = confusion_matrix(test_y, pred_y).astype(np.float32)
+
+        row_sums = cm.sum(axis=1, keepdims=True)
+        cm_percent = np.divide(cm, row_sums, out=np.zeros_like(cm), where=row_sums != 0) * 100.0
+
+        classes = self.label_encoder.classes_
+        num_classes = len(classes)
 
         # Save detailed results - ensure all data is JSON serializable
         results = {
-            "test_accuracy": float(acc),
+            "test_accuracy": float(test_acc),
             "best_params": {str(k): (str(v) if not isinstance(v, (int, float, bool)) else v) for k, v in grid.best_params_.items()},
             "best_cv_score": float(grid.best_score_),
             "classification_report": clf_report,
@@ -1127,34 +1133,42 @@ class PomeloDiseaseTrainer:
         
         with open(self.analysis_dir / "svm_classification_report.txt", "w") as f:
             f.write(clf_report_text)
-            f.write(f"\nTest accuracy: {acc:.4f}\n")
+            f.write(f"\nTest accuracy: {test_acc:.4f}\n")
             f.write(f"Best params: {grid.best_params_}\n")
             f.write(f"CV score: {grid.best_score_:.4f}\n")
 
-        # plot confusion matrix
         plt.figure(figsize=(10, 8))
-        plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-        plt.title(f"SVM Confusion Matrix (Accuracy: {acc:.4f})")
-        plt.colorbar()
-        tick_marks = np.arange(len(self.label_encoder.classes_))
-        plt.xticks(tick_marks, self.label_encoder.classes_, rotation=45, ha="right")
-        plt.yticks(tick_marks, self.label_encoder.classes_)
+        plt.imshow(cm_percent, interpolation="nearest", cmap=plt.cm.Blues, vmin=0, vmax=100)
+        plt.title(f"SVM Confusion Matrix (Acc={test_acc:.4f})")
+        plt.colorbar(label="Percentage (%)")
+
+        tick_marks = np.arange(num_classes)
+        plt.xticks(tick_marks, classes, rotation=45, ha="right")
+        plt.yticks(tick_marks, classes)
         plt.xlabel("Predicted")
         plt.ylabel("True")
-        
-        # Add text annotations
-        thresh = cm.max() / 2.
-        for i, j in np.ndindex(cm.shape):
-            plt.text(j, i, format(cm[i, j], 'd'),
-                    ha="center", va="center",
-                    color="white" if cm[i, j] > thresh else "black")
-        
+
+        # Write NN (PP.PP%) in each cell
+        for i in range(num_classes):
+            for j in range(num_classes):
+                raw_val = int(cm[i, j])
+                perc_val = cm_percent[i, j]
+
+                text = f"{perc_val:.2f}%\n({raw_val})"
+
+                # Use white text on dark squares
+                color = "white" if perc_val > 50 else "black"
+
+                plt.text(j, i, text,
+                        ha="center", va="center",
+                        color=color, fontsize=9)
+
         plt.tight_layout()
         plt.savefig(self.analysis_dir / "svm_confusion_matrix.png", dpi=150, bbox_inches='tight')
         plt.close()
 
         # Save false predictions for test set
-        self._save_false_predictions(df_test, y_test, y_pred, test_paths, self.test_false_pred_dir, "test")
+        self._save_false_predictions(df_test, test_y, pred_y, test_paths, self.test_false_pred_dir, "test")
 
         # Also save false predictions for validation set
         # X_val_scaled is already transformed and feature-selected above
@@ -1162,7 +1176,7 @@ class PomeloDiseaseTrainer:
         self._save_false_predictions(df_val, y_val, y_val_pred, df_val["filepath"].values.tolist(), 
                                 self.validation_false_pred_dir, "validation")
 
-        return acc, grid.best_estimator_
+        return test_acc, grid.best_estimator_
 
     def train_softmax(self):
         """
@@ -1272,10 +1286,14 @@ class PomeloDiseaseTrainer:
         test_loss, test_acc = self.model.evaluate(ds_test, verbose=1)
         self.logger.info(f"Softmax test accuracy: {test_acc:.4f}, loss: {test_loss:.4f}")
 
-        preds = np.argmax(self.model.predict(ds_test), axis=1)
-        cm = confusion_matrix(test_y, preds)
-        report = classification_report(test_y, preds, target_names=self.label_encoder.classes_, output_dict=True)
-        report_text = classification_report(test_y, preds, target_names=self.label_encoder.classes_)
+        pred_y = np.argmax(self.model.predict(ds_test), axis=1)
+        cm = confusion_matrix(test_y, pred_y).astype(np.float32)
+        row_sums = cm.sum(axis=1, keepdims=True)
+        cm_percent = np.divide(cm, row_sums, out=np.zeros_like(cm), where=row_sums != 0) * 100.0
+        classes = self.label_encoder.classes_
+        num_classes = len(classes)
+        report = classification_report(test_y, pred_y, target_names=self.label_encoder.classes_, output_dict=True)
+        report_text = classification_report(test_y, pred_y, target_names=self.label_encoder.classes_)
 
         # Save reports & metrics
         with open(self.analysis_dir / "softmax_classification_report.txt", "w") as f:
@@ -1290,23 +1308,34 @@ class PomeloDiseaseTrainer:
                 "confusion_matrix": cm.tolist()
             }, f, indent=2)
 
-        # Confusion matrix image
-        plt.figure(figsize=(8, 6))
-        im = plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-        plt.colorbar(im)
-        tick_marks = np.arange(len(self.label_encoder.classes_))
-        plt.xticks(tick_marks, self.label_encoder.classes_, rotation=45, ha="right")
-        plt.yticks(tick_marks, self.label_encoder.classes_)
-        plt.title(f"Softmax Confusion Matrix (Acc={test_acc:.4f})")
+        plt.figure(figsize=(10, 8))
+        plt.imshow(cm_percent, interpolation="nearest", cmap=plt.cm.Blues, vmin=0, vmax=100)
+        plt.title(f"Softmac Confusion Matrix (Acc={test_acc:.4f})")
+        plt.colorbar(label="Percentage (%)")
+
+        tick_marks = np.arange(num_classes)
+        plt.xticks(tick_marks, classes, rotation=45, ha="right")
+        plt.yticks(tick_marks, classes)
         plt.xlabel("Predicted")
         plt.ylabel("True")
-        thresh = cm.max() / 2.
-        for i, j in np.ndindex(cm.shape):
-            plt.text(j, i, format(cm[i, j], 'd'),
-                     ha="center", va="center",
-                     color="white" if cm[i, j] > thresh else "black")
+
+        # Write NN (PP.PP%) in each cell
+        for i in range(num_classes):
+            for j in range(num_classes):
+                raw_val = int(cm[i, j])
+                perc_val = cm_percent[i, j]
+
+                text = f"{perc_val:.2f}%\n({raw_val})"
+
+                # Use white text on dark squares
+                color = "white" if perc_val > 50 else "black"
+
+                plt.text(j, i, text,
+                        ha="center", va="center",
+                        color=color, fontsize=9)
+
         plt.tight_layout()
-        plt.savefig(self.analysis_dir / "softmax_confusion_matrix.png")
+        plt.savefig(self.analysis_dir / "softmax_confusion_matrix.png", dpi=150, bbox_inches='tight')
         plt.close()
 
         # Losses and accuracies plots
@@ -1335,15 +1364,15 @@ class PomeloDiseaseTrainer:
         existing["softmax_phase"] = hist.history
         json.dump(existing, open(hist_json, "w"), indent=2)
 
-    def _save_false_predictions(self, df_split, y_true, y_pred, paths, output_dir, split_name):
+    def _save_false_predictions(self, df_split, y_true, pred_y, paths, output_dir, split_name):
         """Save false predictions to specified directory"""
-        false_indices = np.where(y_true != y_pred)[0]
+        false_indices = np.where(y_true != pred_y)[0]
         
         self.logger.info(f"Saving {len(false_indices)} false {split_name} predictions to {output_dir}")
         
         for idx in false_indices:
             true_label = self.label_encoder.inverse_transform([y_true[idx]])[0]
-            pred_label = self.label_encoder.inverse_transform([y_pred[idx]])[0]
+            pred_label = self.label_encoder.inverse_transform([pred_y[idx]])[0]
             src_path = Path(paths[idx])
             
             # Load and save image with caption

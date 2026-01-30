@@ -96,7 +96,7 @@ const ResultScreen = ({ route }) => {
       case "anthracnose":
         setDiseaseDetail(diseases.pomelo_diseases[0]);
         break;
-      case "black Spot":
+      case "blackspot":
         setDiseaseDetail(diseases.pomelo_diseases[1]);
         break;
       case "borer":
@@ -107,7 +107,9 @@ const ResultScreen = ({ route }) => {
       case "mites":
         setDiseaseDetail(diseases.pomelo_diseases[4]);
         break;
-
+      case "healthy":
+        setDiseaseDetail(diseases.pomelo_diseases[5]);
+        break;
       default:
         setDiseaseDetail(null);
         break;

@@ -1186,8 +1186,11 @@ class PomeloDiseaseTrainer:
         """
         self.logger.info(f"Starting SOFTMAX phase continuation from {self.output_dir}")
 
-        analysis_dir = (self.base_model_folder if self.base_model_folder else self.output_dir) / "analysis"
-        weights_dir = (self.base_model_folder if self.base_model_folder else self.output_dir) / "weights"
+        if self.base_model_folder is None:
+            raise ValueError("Base model folder not specified for softmax training.")
+        base_dir = self.outputs_root / self.base_model_folder
+        analysis_dir =  base_dir / "analysis"
+        weights_dir = base_dir / "weights"
 
         # Resolve base folder
         base_model_path = weights_dir / "final_model.keras"
@@ -1199,7 +1202,7 @@ class PomeloDiseaseTrainer:
         self.model = tf.keras.models.load_model(base_model_path)
         le_path = weights_dir / "label_encoder.joblib"
         self.label_encoder = joblib.load(le_path)
-        self.logger.info(f"Loaded base model and label encoder from {self.output_dir}")
+        self.logger.info(f"Loaded base model and label encoder from {base_dir}")
 
         # Use same dataset splits and augmentations as the base run
         split_csv = analysis_dir / "data_splits.csv"

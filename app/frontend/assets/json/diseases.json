@@ -103,6 +103,15 @@
                 "For Melanose: Prune diseased wood, maintain good sanitation and airflow, avoid overhead irrigation, apply copper fungicides before rain, and handle fruits carefully to prevent infection.",
                 "For Mite Damages: Prune diseased wood, maintain good sanitation and airflow, avoid overhead irrigation, apply copper fungicides before rain, and handle fruits carefully to prevent infection."
             ]
+        },
+        {
+            "name": "Others",
+            "description": "The app has detected a non-pomelo image. Please ensure that the image you uploaded is of a pomelo fruit. ",
+            "recommendations": [
+                "Ensure a proper image is uploaded. The image should be clear and focused on the pomelo fruit to allow for accurate disease detection.",
+                "Ensure that the image is that of a pomelo fruit and not any non-pomelo fruit objects.",
+                "If you believe this is an error, please contact support for further assistance."
+            ]
         }
     ]
 }

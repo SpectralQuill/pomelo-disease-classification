@@ -110,6 +110,9 @@ const ResultScreen = ({ route }) => {
       case "healthy":
         setDiseaseDetail(diseases.pomelo_diseases[5]);
         break;
+      case "others":
+        setDiseaseDetail(diseases.pomelo_diseases[6]);
+        break;
       default:
         setDiseaseDetail(null);
         break;
@@ -155,8 +158,8 @@ const ResultScreen = ({ route }) => {
               <Text style={styles.result}>{diseaseDetail?.name}</Text>
               <Text style={styles.descriptionText}>{diseaseDetail?.description}</Text>
 
-              {/*Since healthy doesn't have a symptoms, why not just hide this if it was the case*/}
-              {diseaseDetail.name != "Healthy" && (
+              {/*Since healthy and others doesn't have a symptoms, why not just hide this if it was the case*/}
+              {(diseaseDetail.name != "Healthy" || diseaseDetail.name != "Others") && (
                 <View style={{ width: '100%', marginBottom: 30 }}>
                   <Button
                     mode="contained"

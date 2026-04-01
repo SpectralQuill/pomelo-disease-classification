@@ -22,13 +22,14 @@ function getBaseURL() {
   if (Platform.OS === 'web') {
     host = host === '0.0.0.0' ? 'localhost' : host;
   }
-
   return `http://${host}:${port}`;
 }
 
 const API_BASE_URL = getBaseURL();
 
+console.log(`🚀 API Base URL: ${API_BASE_URL}`);
 class ClassificationService {
+
   constructor() {
     this.api = axios.create({
       baseURL: API_BASE_URL,

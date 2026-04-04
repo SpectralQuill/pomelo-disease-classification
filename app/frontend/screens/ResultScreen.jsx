@@ -110,6 +110,9 @@ const ResultScreen = ({ route }) => {
       case "healthy":
         setDiseaseDetail(diseases.pomelo_diseases[5]);
         break;
+      case "others":
+        setDiseaseDetail(diseases.pomelo_diseases[6]);
+        break;
       default:
         setDiseaseDetail(null);
         break;
@@ -152,11 +155,11 @@ const ResultScreen = ({ route }) => {
           {diseaseDetail && (
             <>
               <Text style={styles.title}>Result</Text>
-              <Text style={styles.result}>{diseaseDetail?.name}</Text>
+              <Text style={diseaseDetail.name != "Others" ? styles.result : styles.error}>{diseaseDetail?.name}</Text>
               <Text style={styles.descriptionText}>{diseaseDetail?.description}</Text>
 
-              {/*Since healthy doesn't have a symptoms, why not just hide this if it was the case*/}
-              {diseaseDetail.name != "Healthy" && (
+              {/*Since healthy and others doesn't have a symptoms, why not just hide this if it was the case*/}
+              {(diseaseDetail.name != "Healthy" || diseaseDetail.name != "Others") && (
                 <View style={{ width: '100%', marginBottom: 30 }}>
                   <Button
                     mode="contained"
@@ -267,6 +270,7 @@ const styles = StyleSheet.create({
   descriptionText: { textAlign: 'justify', paddingBottom: 40, paddingTop: 20, fontWeight: '400', fontSize: 15 },
   sectionsText: { textAlign: 'justify', paddingBottom: 3 },
   percentage: { color: 'white', fontWeight: '700' },
+  error: { color: 'red', fontSize: 16, fontWeight: 'bold' },
 
   headerButton: {
     width: '100%',

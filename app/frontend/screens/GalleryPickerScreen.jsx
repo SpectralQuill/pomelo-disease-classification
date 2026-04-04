@@ -20,8 +20,8 @@ const GalleryPickerScreen = () => {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: false,
-      aspect: [4, 3],
+      allowsEditing: true,
+      aspect: [1, 1],
       quality: 1,
     });
 

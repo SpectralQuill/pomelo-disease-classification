@@ -24,6 +24,8 @@ export const ServerConnectionProvider = ({ children }) => {
         }
     };
 
+    console.log(`Connection status: ${isConnected ? 'Connected' : 'Disconnected'}`);
+
     //auto-retry if failed to connect
     useEffect(() => {
         if (!isConnected) {

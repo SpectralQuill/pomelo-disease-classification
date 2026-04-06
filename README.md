@@ -123,9 +123,9 @@ Once the app is running on your mobile device:
 ## 🔄 Summary of Commands
 
 ```bash
-npm run init       # Install dependencies
-npm run backend    # Start Docker backend
-npm run frontend   # Start Expo frontend
+npm run install         # Install dependencies
+npm run backend:start   # Start Docker backend
+npm run frontend:start  # Start Expo frontend
 ```
 
 ---

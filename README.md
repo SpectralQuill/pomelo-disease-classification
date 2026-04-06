@@ -35,7 +35,7 @@ Make sure you have the following installed:
 Run the following command to install all required Node packages:
 
 ```bash
-npm run init
+npm run install
 ```
 
 ---
@@ -70,7 +70,7 @@ Make sure **Docker Desktop is running** before proceeding.
 Start the Dockerized backend:
 
 ```bash
-npm run backend
+npm run backend:start
 ```
 
 This will:
@@ -84,7 +84,7 @@ This will:
 Start the React Native Expo app:
 
 ```bash
-npm run frontend
+npm run frontend:start
 ```
 
 After running:

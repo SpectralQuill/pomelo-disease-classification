@@ -94,11 +94,6 @@ After running:
 
 ---
 
-
-Gian Tristian Apostol <giantristianapostol@gmail.com>
-7:23 PM (2 hours ago)
-to rrscabangbang
-
 ## 📲 Using the App
 
 Once the app is running on your mobile device:

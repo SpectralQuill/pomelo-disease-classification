@@ -104,6 +104,7 @@ const ResultScreen = ({ route }) => {
         break;
       case "melanose":
         setDiseaseDetail(diseases.pomelo_diseases[3]);
+        break;
       case "mites":
         setDiseaseDetail(diseases.pomelo_diseases[4]);
         break;
